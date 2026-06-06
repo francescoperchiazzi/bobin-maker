@@ -1,0 +1,4390 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <title>Waraiguma · Bobin Maker — Il Mare Artigiano</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
+  <link rel="stylesheet" href="vendor/tabler-icons-webfont/tabler-icons.min.css">
+
+  <style>
+    @font-face { font-family: 'Poppins'; font-style: normal; font-weight: 400; font-display: swap; src: url('./fonts/poppins-latin-400.woff2') format('woff2'); }
+    @font-face { font-family: 'Poppins'; font-style: normal; font-weight: 600; font-display: swap; src: url('./fonts/poppins-latin-600.woff2') format('woff2'); }
+    @font-face { font-family: 'Poppins'; font-style: normal; font-weight: 700; font-display: swap; src: url('./fonts/poppins-latin-700.woff2') format('woff2'); }
+    @font-face { font-family: 'Poppins'; font-style: normal; font-weight: 800; font-display: swap; src: url('./fonts/poppins-latin-800.woff2') format('woff2'); }
+
+    /* ══════════════════════════════════════════════════════════════
+       CUSTOM PROPERTIES (Design Tokens)
+       ══════════════════════════════════════════════════════════════
+       All key colors and sizes are centralized here.
+       --u is the scalable unit: clamped between 13px and 18px based on
+       viewport height; every CSS measure is a multiple of --u to keep
+       proportions consistent across screen sizes.                       */
+    :root {
+      /* Primary palette (night blue — sea theme) */
+      --bn: #0f1e36;   /* night blue, primary text */
+      --bm: #1e3a6a;   /* mid blue, gradient */
+      --bp: #2d5f96;   /* primary blue, accents */
+      --ce: #6aa8ce;   /* light blue, soft highlight */
+      --bo: #e2ecf4;   /* very light blue, card backgrounds */
+      --cr: #ede7d3;   /* cream, right panel + header background */
+      --sa: #b89248;   /* golden sand, quotes */
+
+      /* Semi-transparent borders and separators */
+      --br: rgba(15,30,54,.14);
+
+      /* Text — three hierarchy levels */
+      --txt-primary:   #0f1e36;
+      --txt-secondary: #2a4060;
+      --txt-muted:     #4a6080;
+
+      /* Fluid scalable unit: uses dvh (dynamic viewport height) to exclude
+         browser chrome on iOS Safari.
+         Fallback to 1.35vh for browsers that don't support dvh (< iOS 15.4). */
+      --u: clamp(13px, 1.35vh, 18px);
+      --u: clamp(13px, 1.35dvh, 18px);
+
+      /* Header height: set by JS after first render
+         (ResizeObserver updates --hdr-h if header height changes). */
+      --hdr-h: 44px;
+
+      /* Dock height: set by JS via ResizeObserver (like --hdr-h).
+         Used by #kids-color-btn to sit above the dock. */
+      --dock-h: 140px;
+    }
+
+    /* ── Minimal reset ── */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /*
+      overflow:hidden on body prevents accidental scrollbars.
+      The whole app lives inside 100vh without vertical scrolling.
+    */
+    body {
+      font-family: 'Poppins','Helvetica Neue',Arial,sans-serif;
+      background: #0d1828;   /* dark background visible during loading */
+      color: var(--bn);
+      overflow: hidden;
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       HEADER
+       ══════════════════════════════════════════════════════════════
+       Top horizontal bar: brand, event tag, language switcher.
+       flex-wrap allows wrapping on narrow screens without breaking
+       the layout.                                                     */
+    .hdr {
+      display: flex;
+      align-items: center;
+      gap: calc(var(--u) * .8);
+      padding: calc(var(--u) * .45) calc(var(--u) * 1.1);
+      background: var(--cr);
+      border-bottom: 1px solid var(--br);
+      flex-wrap: wrap;
+      flex-shrink: 0; /* non comprimersi nel flex verticale del body */
+    }
+    .brand-name { font-size: calc(var(--u)*1.2); font-weight:800; letter-spacing:-.02em; color:var(--bn); line-height:1.1; }
+    .brand-sub  { font-size: calc(var(--u)*.55); letter-spacing:.18em; text-transform:uppercase; color:var(--bp); font-weight:600; }
+    .hdr-tag    { font-size: calc(var(--u)*.6);  letter-spacing:.08em; text-transform:uppercase; color:var(--bn); background:var(--ce); padding:calc(var(--u)*.2) calc(var(--u)*.65); border-radius:20px; white-space:nowrap; }
+    .hdr-credit { font-size: calc(var(--u)*.6);  color: var(--bn); margin-left: auto; display:flex; align-items:center; gap:calc(var(--u)*.45); }
+    .hdr-gh {
+      width: calc(var(--u)*1.85);
+      height: calc(var(--u)*1.85);
+      border-radius: 50%;
+      border: 1px solid var(--br);
+      background: var(--bo);
+      color: var(--bn);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      transition: border-color .12s, background .12s, transform .12s;
+      flex-shrink: 0;
+    }
+    .hdr-gh:hover { border-color: var(--bp); background: rgba(138,184,216,.12); transform: translateY(-1px); }
+    .hdr-gh i { font-size: calc(var(--u)*1.05); }
+
+    /* Language switcher IT / EN / FR / JA — pill with highlighted .on state */
+    .lrow { display:flex; gap:calc(var(--u)*.25); }
+    .lbtn { padding:calc(var(--u)*.25) calc(var(--u)*.65); border-radius:20px; border:1px solid var(--br); background:var(--bo); cursor:pointer; font-size:calc(var(--u)*.7); font-weight:700; color:var(--bn); font-family:inherit; transition:all .12s; }
+    .lbtn.on { background:var(--bn); color:var(--cr); }
+
+    /* ══════════════════════════════════════════════════════════════
+       MAIN LAYOUT
+       ══════════════════════════════════════════════════════════════
+       .main is a horizontal flex container that fills the remaining height
+       (100vh minus the header, whose precise value is injected into --hdr-h
+       by JavaScript via ResizeObserver).
+
+       .c3d-col   → left column: 3D canvas + color dock (flex:1)
+       .panel     → right column: yarn controls + export (fixed width)        */
+    .main {
+      display: flex;
+      /* dvh excludes browser chrome on iOS Safari (address bar, tab bar).
+         Fallback to vh for browsers that don't support dvh (< iOS 15.4). */
+      height: calc(100vh  - var(--hdr-h, 44px));   /* fallback */
+      height: calc(100dvh - var(--hdr-h, 44px));   /* preferred */
+      overflow: hidden;
+    }
+
+    /*
+      .c3d-col: position:relative is CRITICAL.
+      All absolutely positioned children (canvas, loader, toolbar, dock)
+      are positioned relative to this container.
+      min-width:0 prevents overflow inside the flex parent on Firefox.
+    */
+    .c3d-col {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      background: #0d1828;
+      min-width: 0;
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       THREE.JS CANVAS HOST
+       ══════════════════════════════════════════════════════════════
+       Three.js creates the <canvas> and appends it to #c3d-canvas-host
+       via renderer.domElement. This wrapper ("position:absolute inset:0")
+       ensures the canvas has real dimensions at init time — without it
+       the canvas would be 0×0.
+
+       NOTE: don't use #c3d-canvas-host as the direct event target:
+       mouse/touch listeners are attached to renderer.domElement.           */
+    #c3d-canvas-host {
+      position: absolute;
+      inset: 0;
+      /* Background transition is handled in JS (lerp on renderer clear color).
+         The div's background-color is kept in sync via CSS for a "warm-up"
+         effect during load, before the renderer becomes active.            */
+      background: #0d1828;
+      transition: background-color .6s ease;
+    }
+    #c3d-canvas-host canvas {
+      position: absolute;
+      inset: 0;
+      width:  100% !important;
+      height: 100% !important;
+      display: block;
+      outline: none;
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       VIEW TOOLBAR (Orbit / Pan / Fit / Auto)
+       ══════════════════════════════════════════════════════════════
+       Floating above the canvas, horizontally centered.
+       z-index:10 to sit above the canvas but below the loader.            */
+    .view-toolbar {
+      position: absolute;
+      top: calc(var(--u) * .8);
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: calc(var(--u) * .4);
+      z-index: 10;
+    }
+    /* Toolbar button: dark glass effect — always readable on any canvas background */
+    .vtbtn {
+      display: flex;
+      align-items: center;
+      gap: calc(var(--u) * .35);
+      padding: calc(var(--u)*.4) calc(var(--u)*.75);
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,.22);
+      background: rgba(10,18,32,.88);
+      color: rgba(255,255,255,.88);
+      cursor: pointer;
+      font-size: calc(var(--u)*.75);
+      font-weight: 600;
+      transition: all .12s;
+      white-space: nowrap;
+      box-shadow: 0 2px 10px rgba(0,0,0,.38), 0 0 0 1px rgba(0,0,0,.18);
+      text-shadow: 0 1px 3px rgba(0,0,0,.5);
+    }
+    .vtbtn i { font-size: calc(var(--u)*1.1); }
+    /* Active state: subtle blue background */
+    .vtbtn.on    { background:rgba(26,58,100,.92); border-color:rgba(138,184,216,.55); color:#8ab8d8; }
+    .vtbtn:hover:not(.on) { background:rgba(20,35,60,.95); }
+
+    /* "IL MARE ARTIGIANO" watermark top-right — ghost text */
+    .wmark {
+      position: absolute;
+      top: calc(var(--u)*.6);
+      right: calc(var(--u)*.8);
+      font-size: calc(var(--u)*.55);
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.10);
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       PICK COLOR BUTTON — inside #hk-img-wrapper
+       ══════════════════════════════════════════════════════════════
+       Only visible when the Hokusai overlay is open (the parent
+       #hk-canvas-overlay has display:none by default).
+       Absolutely positioned and centered at the bottom of the image.      */
+    #kids-color-btn {
+      position: absolute;
+      bottom: calc(var(--u) * 2.8);
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: calc(var(--u)*1.0);
+      padding: calc(var(--u)*.85) calc(var(--u)*1.15);
+      border-radius: 50px;
+      border: 2.5px solid rgba(255,255,255,.38);
+      background: rgba(8,15,30,.88);
+      color: #fff;
+      cursor: pointer;
+      font-family: 'Poppins', sans-serif;
+      font-size: calc(var(--u)*1.02);
+      font-weight: 800;
+      box-shadow: 0 6px 28px rgba(0,0,0,.65), 0 0 0 1px rgba(0,0,0,.3);
+      text-shadow: 0 1px 6px rgba(0,0,0,.6);
+      transition: background .15s, transform .12s, box-shadow .15s;
+      overflow: hidden;
+      white-space: nowrap;
+      letter-spacing: .01em;
+      z-index: 4;
+    }
+    #kids-color-btn:hover {
+      background: rgba(26,58,100,.95);
+      transform: translateX(-50%) translateY(-2px);
+      box-shadow: 0 10px 36px rgba(0,0,0,.7);
+    }
+    /* Colored disc showing the bobbin's current color */
+    #kids-color-swatch {
+      width:  calc(var(--u)*2.4);
+      height: calc(var(--u)*2.4);
+      border-radius: 50%;
+      border: 2.5px solid rgba(255,255,255,.45);
+      background: #FF3B3B;
+      flex-shrink: 0;
+      pointer-events: none;
+      box-shadow: 0 2px 10px rgba(0,0,0,.5);
+      transition: background .2s;
+    }
+    .kcb-left { display: flex; align-items: center; gap: calc(var(--u)*.65); }
+    .kcb-left-txt { display: flex; flex-direction: column; line-height: 1.05; }
+    .kcb-mini { font-size: calc(var(--u)*.58); font-weight: 700; opacity: .78; }
+    #kids-color-hex { font-size: calc(var(--u)*.92); font-weight: 900; letter-spacing: .04em; }
+    .kcb-right { display: flex; align-items: center; gap: calc(var(--u)*.55); padding-left: calc(var(--u)*.9); border-left: 1px solid rgba(255,255,255,.18); }
+    .kcb-icon { width: calc(var(--u)*1.35); height: calc(var(--u)*1.35); flex-shrink: 0; }
+    .kcb-icon path { fill: none; stroke: #6bc8f0; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    #kids-color-btn span { pointer-events: none; }
+    /* Invisible overlaid color input */
+    #kids-color-btn input[type=color] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       Pill con due segmenti integrato nella barra header.
+       Non ha z-index né position:absolute — nessun conflitto con
+       gli overlay del canvas. */
+    #mode-toggle {
+      display: flex;
+      background: rgba(0,0,0,.25);
+      border: 1px solid var(--br);
+      border-radius: 40px;
+      padding: 3px;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+    .mtbtn {
+      display: flex;
+      align-items: center;
+      gap: calc(var(--u)*.38);
+      padding: calc(var(--u)*.32) calc(var(--u)*.82);
+      border-radius: 36px;
+      border: none;
+      background: transparent;
+      color: rgba(255,255,255,.45);
+      cursor: pointer;
+      font-family: 'Poppins', sans-serif;
+      font-size: calc(var(--u)*.73);
+      font-weight: 700;
+      transition: background .18s, color .18s;
+      white-space: nowrap;
+      letter-spacing: .01em;
+    }
+    .mtbtn i { font-size: calc(var(--u)*.95); }
+    .mtbtn.on {
+      background: var(--bn);
+      color: var(--cr);
+    }
+    .mtbtn.on i { color: var(--cr); }
+
+    /* Panel: transizione di scivolamento laterale */
+    .panel {
+      width: 380px;
+      flex-shrink: 0;
+      background: var(--cr);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border-left: 1px solid var(--br);
+      transition: width .32s cubic-bezier(.4,0,.2,1),
+                  opacity .28s ease,
+                  border-color .28s ease;
+    }
+    @media (min-width:1400px) { .panel { width:440px; } }
+    .panel.pro-hidden {
+      width: 0 !important;
+      opacity: 0;
+      border-color: transparent;
+      pointer-events: none;
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       MODALE CONFERMA COLORE
+       ══════════════════════════════════════════════════════════════
+       Appare sopra al canvas quando viene campionato un colore
+       con EyeDropper. Permette di confermare o annullare prima
+       di applicare il colore al rocchetto.
+       z-index:150 per stare sopra al loader (z-index:100). */
+    #color-confirm-modal {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(8,14,28,.65);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      z-index: 150;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .22s ease;
+    }
+    #color-confirm-modal.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+    .ccm-card {
+      background: var(--cr);
+      border: 1.5px solid var(--br);
+      border-radius: 16px;
+      padding: calc(var(--u)*1.4) calc(var(--u)*1.6);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: calc(var(--u)*.85);
+      min-width: calc(var(--u)*14);
+      max-width: calc(var(--u)*20);
+      box-shadow: 0 16px 48px rgba(0,0,0,.55);
+    }
+    .ccm-swatch {
+      width: calc(var(--u)*7);
+      height: calc(var(--u)*7);
+      border-radius: 50%;
+      border: 4px solid rgba(255,255,255,.15);
+      box-shadow: 0 4px 20px rgba(0,0,0,.45);
+      transition: background .15s;
+    }
+    .ccm-label {
+      font-size: calc(var(--u)*.72);
+      color: var(--txt-secondary);
+      font-weight: 600;
+      letter-spacing: .05em;
+      text-align: center;
+    }
+    .ccm-hex {
+      font-size: calc(var(--u)*1.05);
+      font-weight: 800;
+      color: var(--txt-primary);
+      letter-spacing: .12em;
+      font-family: 'Courier New', monospace;
+    }
+    .ccm-actions {
+      display: flex;
+      gap: calc(var(--u)*.6);
+      width: 100%;
+    }
+    .ccm-apply {
+      flex: 1;
+      padding: calc(var(--u)*.55) calc(var(--u)*.8);
+      border-radius: 8px;
+      border: none;
+      background: var(--bp);
+      color: #fff;
+      font-family: 'Poppins', sans-serif;
+      font-size: calc(var(--u)*.82);
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .12s, transform .1s;
+      letter-spacing: .01em;
+    }
+    .ccm-apply:hover { background: var(--bn); transform: translateY(-1px); }
+    .ccm-cancel {
+      padding: calc(var(--u)*.55) calc(var(--u)*.8);
+      border-radius: 8px;
+      border: 1.5px solid var(--br);
+      background: var(--bo);
+      color: var(--txt-secondary);
+      font-family: 'Poppins', sans-serif;
+      font-size: calc(var(--u)*.82);
+      font-weight: 600;
+      cursor: pointer;
+      transition: border-color .12s, background .12s;
+    }
+    .ccm-cancel:hover { border-color: var(--bp); background: rgba(138,184,216,.08); }
+
+    /* ══════════════════════════════════════════════════════════════
+       HOKUSAI CANVAS BUTTON — large, always visible
+       ══════════════════════════════════════════════════════════════
+       Circle with the Wave thumbnail, positioned bottom-left above the
+       dock. Always visible in both modes.
+       z-index 12: above the canvas, below the Hokusai overlay (15).       */
+    #hokusai-canvas-btn {
+      position: absolute;
+      bottom: calc(var(--dock-h, 140px) + calc(var(--u) * 1.2));
+      left: calc(var(--u) * 1.4);
+      width:  clamp(72px, calc(var(--u)*5.8), 96px);
+      height: clamp(72px, calc(var(--u)*5.8), 96px);
+      border-radius: 50%;
+      border: 3px solid rgba(255,255,255,.55);
+      background: none;
+      cursor: pointer;
+      z-index: 12;
+      box-shadow: 0 4px 20px rgba(0,0,0,.55), 0 0 0 2px rgba(100,180,240,.3);
+      transition: transform .16s, border-color .18s, box-shadow .18s;
+      overflow: hidden;
+    }
+    #hokusai-canvas-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: url('img/The_Great_Wave_off_Kanagawa.jpg') center/cover no-repeat,
+                  url('https://upload.wikimedia.org/wikipedia/commons/0/0a/The_Great_Wave_off_Kanagawa.jpg') center/cover no-repeat;
+      transform: translateZ(0);
+    }
+    #hokusai-canvas-btn:hover,
+    #hokusai-canvas-btn.hk-open {
+      transform: scale(1.1);
+      border-color: #fff;
+      box-shadow: 0 6px 28px rgba(0,0,0,.65), 0 0 0 4px rgba(100,180,240,.55);
+    }
+
+    .hk-canvas-label {
+      position: absolute;
+      left: calc(var(--u) * 1.4 + clamp(72px, calc(var(--u)*5.8), 96px) + calc(var(--u) * .8));
+      bottom: calc(var(--dock-h, 140px) + calc(var(--u) * 1.2) + (clamp(72px, calc(var(--u)*5.8), 96px) / 2));
+      transform: translateY(50%);
+      padding: calc(var(--u) * .22) calc(var(--u) * .6);
+      max-width: 280px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.16);
+      background: rgba(0,0,0,.42);
+      color: rgba(255,255,255,.92);
+      font-size: calc(var(--u) * .6);
+      font-weight: 600;
+      letter-spacing: .2px;
+      z-index: 12;
+      pointer-events: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      backdrop-filter: blur(6px);
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #canvas-capture-btn {
+      position: absolute;
+      top: calc(env(safe-area-inset-top, 0px) + calc(var(--u) * .8));
+      right: calc(var(--u) * 1.0);
+      width:  clamp(72px, calc(var(--u)*5.8), 96px);
+      height: clamp(72px, calc(var(--u)*5.8), 96px);
+      border-radius: 50%;
+      border: 3px solid rgba(255,255,255,.55);
+      background: rgba(10,18,32,.88);
+      cursor: pointer;
+      z-index: 12;
+      box-shadow: 0 4px 20px rgba(0,0,0,.55), 0 0 0 2px rgba(100,180,240,.3);
+      transition: transform .16s, border-color .18s, box-shadow .18s, background .18s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255,255,255,.92);
+      -webkit-tap-highlight-color: transparent;
+    }
+    #canvas-capture-btn:hover {
+      transform: scale(1.1);
+      border-color: #fff;
+      background: rgba(26,58,100,.92);
+      box-shadow: 0 6px 28px rgba(0,0,0,.65), 0 0 0 4px rgba(100,180,240,.55);
+    }
+    #canvas-capture-btn:active { transform: scale(1.06); }
+    #canvas-capture-btn.busy { opacity: .6; pointer-events: none; }
+    #canvas-capture-btn i { font-size: calc(var(--u) * 1.65); }
+    #canvas-capture-btn .share-plane { width: 58%; height: 58%; }
+    #canvas-capture-btn .share-plane path {
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.6;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      opacity: .9;
+    }
+    #canvas-capture-btn .share-plane .fold {
+      stroke-width: 1.15;
+      opacity: .55;
+    }
+    #canvas-capture-btn .share-plane { filter: drop-shadow(0 2px 6px rgba(0,0,0,.35)); }
+
+    /* ══════════════════════════════════════════════════════════════
+       LOADING SCREEN (#ldr)
+       ══════════════════════════════════════════════════════════════
+       Semi-opaque overlay covering the entire 3D area during:
+       - initial loading
+       - any geometry rebuild (color, type, parameter changes)
+       - USDZ file generation
+       Shown/hidden via showLdr() / hideLdr().
+       z-index:100 ensures it's above everything.                          */
+    #ldr {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: calc(var(--u)*.8);
+      background: rgba(10,20,35,.92);
+      z-index: 100;
+      opacity: 0;
+      transition: opacity .18s ease;
+    }
+    #ldr.on { opacity: 1; }
+    #ldr .ln { font-size:calc(var(--u)*.85); font-weight:700; letter-spacing:.14em; color:rgba(255,255,255,.55); text-transform:uppercase; }
+    #ldr .ls { font-size:calc(var(--u)*.72); color:rgba(255,255,255,.33); letter-spacing:.06em; }
+
+    /* ══════════════════════════════════════════════════════════════
+       YARN COLOR DOCK
+       ══════════════════════════════════════════════════════════════
+       Floating bar at the bottom of the 3D column.
+       Two-row structure:
+         .dock-mainrow → segment + swatches + Hokusai + save
+         #dock-mypal   → personal palette row (hidden when empty)
+       backdrop-filter:blur() creates the frosted-glass effect.           */
+    .dock {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: rgba(13,24,40,.88);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid rgba(255,255,255,.08);
+      /* padding-bottom includes the iPhone/iPad home indicator (notch/Dynamic Island) */
+      padding: calc(var(--u)*.75) calc(var(--u)*1.2)
+               calc(var(--u)*.75 + env(safe-area-inset-bottom, 0px))
+               calc(var(--u)*1.2);
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0;
+      z-index: 10;
+    }
+
+    /* Main dock row (same as the previous layout) */
+    .dock-mainrow {
+      display: flex;
+      flex-direction: column;   /* label+toggle on top, swatches below */
+      gap: 0;
+    }
+
+    /* Palette header: toggle above the label */
+    .dock-palette-hdr {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: calc(var(--u)*.6);
+      padding-top: calc(var(--u)*1.2);
+      padding-bottom: calc(var(--u)*.95);
+    }
+    .dock-palette-hdr .dock-seg { align-self: flex-start; }
+    .dock-palette-hdr .dock-group-label { margin-bottom: 0; }
+
+    /* Kids / Wave segment — two pill buttons */
+    .dock-seg { display:flex; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); border-radius:20px; padding:2px; gap:2px; flex-shrink:0; }
+    .dock-seg-btn { border:none; background:transparent; border-radius:16px; padding:calc(var(--u)*.2) calc(var(--u)*.65); font-size:calc(var(--u)*.7); font-weight:700; font-family:inherit; color:rgba(255,255,255,.6); cursor:pointer; transition:all .18s; white-space:nowrap; }
+    .dock-seg-btn.on { background:rgba(255,255,255,.18); color:#fff; }
+    .dock-seg-btn:not(.on):hover { background:rgba(255,255,255,.10); color:#fff; }
+
+    /* Color swatches container — dedicated row below the palette header */
+    .dock-swatches { display:flex; gap:calc(var(--u)*.95); align-items:center; flex-wrap:wrap; padding-bottom:calc(var(--u)*.95); }
+
+    /* Single color swatch — larger for kids (min 48px, Apple HIG) */
+    .dock-sw {
+      width:  clamp(48px, calc(var(--u)*3.6), 66px);
+      height: clamp(48px, calc(var(--u)*3.6), 66px);
+      position: relative;
+      border-radius: 50%;
+      border: 3px solid transparent;
+      cursor: pointer;
+      transition: transform .14s, border-color .14s;
+      box-shadow: 0 0 0 1px rgba(255,255,255,.22), 0 2px 6px rgba(0,0,0,.35);
+      flex-shrink: 0;
+      overflow: hidden;
+      background: none;
+      will-change: auto;
+    }
+    .dock-sw::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: var(--sw, transparent);
+      transform: translateZ(0);
+    }
+    .dock-sw:hover { transform: scale(1.18); }
+    /* Selected state: white border + outer ring */
+    .dock-sw.on { border-color:#fff; box-shadow:0 0 0 3px rgba(255,255,255,.55), 0 2px 8px rgba(0,0,0,.4); transform: scale(1.12); }
+
+    /* Heart button — adds the current color to the personal palette */
+    .dock-save-btn {
+      width:  clamp(48px, calc(var(--u)*3.4), 62px);
+      height: clamp(48px, calc(var(--u)*3.4), 62px);
+      border-radius: 50%;
+      border: 2px solid rgba(138,184,216,.4);
+      background: transparent;
+      color: rgba(255,255,255,.5);
+      font-size: calc(var(--u)*1.35);
+      cursor: pointer;
+      transition: all .15s;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0;
+    }
+    .dock-save-btn:hover {
+      border-color: rgba(255,120,130,.85);
+      color: #ff7080;
+      background: rgba(255,80,100,.12);
+      transform: scale(1.12);
+    }
+
+    /* ── Personal palette row — always present in the dock ─────────
+       When empty: shows only the label + actions (Hokusai + heart).
+       When it has colors: the label changes and the swatches appear.
+       A bottom border separates it from the default palette below.       */
+    #dock-mypal {
+      display: flex;
+      flex-direction: column;
+      gap: calc(var(--u)*.35);
+      padding-top: calc(var(--u)*.9);
+      padding-bottom: calc(var(--u)*2);
+      margin-bottom: calc(var(--u)*.75);
+      border-bottom: 1px solid rgba(255,255,255,.12);
+      width: 100%;
+    }
+    /* Inner row: label + actions + saved swatches */
+    #dock-mypal .mypal-row {
+      display: flex;
+      align-items: center;
+      gap: calc(var(--u)*.9);
+      flex-wrap: wrap;
+    }
+
+    /* Positioned wrapper for the swatch + remove × button */
+    .dock-my-wrap {
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    /* Remove × button, overlaid top-right on the swatch */
+    .dock-my-remove {
+      position: absolute;
+      top: -5px; right: -5px;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: rgba(200,60,40,.92);
+      border: 1.5px solid rgba(255,255,255,.7);
+      color: #fff;
+      font-size: 11px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0;
+      transition: opacity .15s;
+      padding: 0;
+      font-family: sans-serif;
+    }
+    .dock-my-wrap:hover .dock-my-remove { opacity: 1; }
+
+    /* ══════════════════════════════════════════════════════════════
+       RIGHT PANEL
+       ══════════════════════════════════════════════════════════════
+       Cream-background column containing all controls:
+       yarn type · tint · geometry · surface look · export.
+       Fixed width 380px (440px on screens wider than 1400px).
+       .pscroll handles vertical overflow with a thin scrollbar.          */
+    .pscroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: calc(var(--u)*.9) calc(var(--u)*1.2);
+      display: flex;
+      flex-direction: column;
+      gap: calc(var(--u)*.75);
+      scrollbar-width: thin;
+      scrollbar-color: var(--br) transparent;
+    }
+
+    /* ── Section (icon + title + hint) ── */
+    .sec   { display:flex; align-items:flex-start; gap:calc(var(--u)*.6); margin-bottom:calc(var(--u)*.2); }
+    .sec i { font-size:calc(var(--u)*1.2); color:var(--bp); flex-shrink:0; margin-top:1px; }
+    .sec-t { flex:1; }
+    .slbl  { font-size:calc(var(--u)*.75); font-weight:700; color:var(--txt-primary); letter-spacing:.13em; text-transform:uppercase; display:block; }
+    .shint { font-size:calc(var(--u)*.8);  color:var(--txt-secondary); font-style:italic; line-height:1.4; display:block; margin-top:2px; }
+
+    /* Eye-dropper button — always visible in the panel.
+       On browsers with the EyeDropper API: opens the full-screen sampler.
+       On Safari/iOS and Firefox: opens the OS native color picker (with
+       an integrated eyedropper on Safari macOS/iOS).                      */
+    #btn-eyedropper {
+      display: flex; /* always visible — no longer conditional on window.EyeDropper */
+      width: calc(var(--u)*2.4);
+      height: calc(var(--u)*2.4);
+      border-radius: 6px;
+      border: 1.5px solid var(--br);
+      background: var(--bo);
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      padding: 0;
+      transition: border-color .14s, background .14s;
+    }
+    #btn-eyedropper:hover { border-color: var(--bp); background: rgba(138,184,216,.1); }
+    #btn-eyedropper i { font-size: calc(var(--u)*1.2); color: var(--bp); pointer-events: none; }
+    .sep { height:1px; background:var(--br); margin:calc(var(--u)*.55) 0; opacity:.7; }
+
+    /* ── Yarn type grid (3 columns) ── */
+    .tgrid { display:grid; grid-template-columns:repeat(3,1fr); gap:calc(var(--u)*.4); }
+    .tbtn  {
+      display:flex; flex-direction:column; align-items:center;
+      padding:calc(var(--u)*.55) 4px calc(var(--u)*.45);
+      border-radius:9px; border:2px solid var(--br); background:var(--bo);
+      cursor:pointer; transition:all .14s; gap:calc(var(--u)*.25);
+    }
+    .tbtn i       { font-size:calc(var(--u)*1.5); color:var(--txt-secondary); }
+    .tbtn-lbl     { font-size:calc(var(--u)*.86); font-weight:700; color:var(--txt-secondary); text-align:center; line-height:1.25; letter-spacing:.01em; }
+    .tbtn:hover   { border-color:var(--bp); }
+    /* Active state: night blue background */
+    .tbtn.on      { background:var(--bn); border-color:var(--bn); }
+    .tbtn.on i, .tbtn.on .tbtn-lbl { color:var(--cr); }
+
+    /* ── Slider (range input) ──
+       Custom look: blue gradient track, circular thumb.
+       The browser default track is hidden via appearance:none.            */
+    .ctrl   { display:flex; flex-direction:column; gap:calc(var(--u)*.25); margin-top:calc(var(--u)*.5); }
+    .ctrl-h { display:flex; align-items:center; gap:calc(var(--u)*.55); }
+    .ctrl-h i     { font-size:calc(var(--u)*1.05); color:var(--bp); flex-shrink:0; }
+    .ctrl-h label { font-size:calc(var(--u)*.93); color:var(--txt-secondary); flex:1; display:flex; justify-content:space-between; align-items:center; font-weight:500; line-height:1.3; }
+    .ctrl-h label b { font-weight:800; font-size:calc(var(--u)*.93); color:var(--txt-primary); letter-spacing:.02em; }
+    input[type=range] {
+      width:100%; height:3px; -webkit-appearance:none; appearance:none;
+      background:linear-gradient(90deg,var(--bp),var(--ce));
+      border-radius:2px; outline:none; cursor:pointer; margin-top:2px;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance:none;
+      width:calc(var(--u)*1.0); height:calc(var(--u)*1.0);
+      background:var(--bn); border-radius:50%; border:2px solid var(--ce); cursor:pointer;
+    }
+    input[type=range]::-moz-range-thumb {
+      width:calc(var(--u)*1.0); height:calc(var(--u)*1.0);
+      background:var(--bn); border-radius:50%; border:2px solid var(--ce); cursor:pointer;
+    }
+    @media (pointer: coarse) {
+      .ctrl { gap: calc(var(--u)*.45); margin-top: calc(var(--u)*.95); padding: calc(var(--u)*.25) 0; }
+      input[type=range] { height:6px; border-radius:6px; margin-top:4px; }
+      input[type=range]::-webkit-slider-thumb {
+        width:clamp(28px, calc(var(--u)*1.8), 38px);
+        height:clamp(28px, calc(var(--u)*1.8), 38px);
+        border-width: 2.5px;
+      }
+      input[type=range]::-moz-range-thumb {
+        width:clamp(28px, calc(var(--u)*1.8), 38px);
+        height:clamp(28px, calc(var(--u)*1.8), 38px);
+        border-width: 2.5px;
+      }
+    }
+
+    /* ── Custom tint card ── */
+    .cc-card  { background:var(--bo); border:1.5px solid var(--br); border-radius:9px; padding:calc(var(--u)*.6); display:flex; flex-direction:column; gap:calc(var(--u)*.45); }
+    /* Selected color preview: rectangle with hex text */
+    .cc-prev  { width:100%; height:calc(var(--u)*2.4); border-radius:6px; border:1px solid var(--br); display:flex; align-items:center; justify-content:center; font-size:calc(var(--u)*.85); font-weight:700; letter-spacing:.08em; cursor:pointer; transition:background .15s; }
+    .cc-row   { display:flex; align-items:center; gap:calc(var(--u)*.5); }
+    /* Clickable square that opens the native color picker */
+    .cc-pick  { width:calc(var(--u)*2.4); height:calc(var(--u)*2.4); border-radius:6px; border:1.5px solid var(--br); cursor:pointer; position:relative; overflow:hidden; flex-shrink:0; }
+    .cc-pick input[type=color] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+    /* Hex input: monospace, uppercase, kept in sync with the picker */
+    .cc-hex   { flex:1; padding:calc(var(--u)*.45) calc(var(--u)*.7); border:1.5px solid var(--br); border-radius:6px; font-size:calc(var(--u)*.9); font-weight:700; background:#fff; color:var(--bn); letter-spacing:.07em; font-family:monospace; text-transform:uppercase; }
+    .cc-hex:focus { outline:none; border-color:var(--bp); }
+
+    /* Full-width eyedropper button — opens the OS native picker */
+    .cc-pick-full {
+      position: relative;
+      width: 100%;
+      height: calc(var(--u)*2.8);
+      border-radius: 8px;
+      border: 2px solid var(--br);
+      background: var(--bo);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: calc(var(--u)*.55);
+      font-family: 'Poppins', sans-serif;
+      font-size: calc(var(--u)*.82);
+      font-weight: 700;
+      color: var(--bn);
+      transition: border-color .14s, background .14s, box-shadow .14s;
+      overflow: hidden;
+      letter-spacing: .01em;
+    }
+    .cc-pick-full:hover {
+      border-color: var(--bp);
+      background: rgba(42,90,150,.09);
+      box-shadow: 0 0 0 3px rgba(138,184,216,.18);
+    }
+    .cc-pick-full i {
+      font-size: calc(var(--u)*1.28);
+      color: var(--bp);
+      pointer-events: none;
+      flex-shrink: 0;
+    }
+    .cc-pick-full span { pointer-events: none; }
+    /* Invisible color input overlaid on the button */
+    .cc-pick-full input[type=color] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ── Surface presets grid (3 options: matte/semi/shiny) ── */
+    .rp-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:calc(var(--u)*.4); margin-top:calc(var(--u)*.15); }
+    .rp-item { display:flex; flex-direction:column; align-items:center; gap:calc(var(--u)*.28); padding:calc(var(--u)*.45) 4px; border-radius:8px; border:2px solid var(--br); background:var(--bo); cursor:pointer; transition:all .12s; }
+    .rp-item:hover { border-color:var(--bp); }
+    .rp-item.on    { border-color:var(--bn); background:rgba(26,42,74,.07); }
+    /* Material preview dot */
+    .rp-dot  { width:calc(var(--u)*2.2); height:calc(var(--u)*2.2); border-radius:50%; }
+    .rp-lbl  { font-size:calc(var(--u)*.80); color:var(--txt-secondary); font-weight:700; text-align:center; line-height:1.25; letter-spacing:.01em; }
+
+    /* ── Munari quote ──
+       Hidden on short screens (< 820px height) via media query.           */
+    .qt { background:var(--bo); border-left:3px solid var(--ce); padding:calc(var(--u)*.5) calc(var(--u)*.7); border-radius:0 6px 6px 0; }
+    .qt p    { font-size:calc(var(--u)*.72); line-height:1.5; color:var(--txt-secondary); font-style:italic; }
+    .qt cite { display:block; margin-top:calc(var(--u)*.25); font-size:calc(var(--u)*.65); font-weight:700; color:var(--sa); letter-spacing:.08em; text-transform:uppercase; font-style:normal; }
+    @media (max-height:820px) { .qt { display:none; } }
+
+    /* ── Export buttons ── */
+    .erow { display:flex; flex-direction:column; gap:calc(var(--u)*.4); }
+    .dbtn {
+      width:100%; padding:calc(var(--u)*.7) calc(var(--u)*.95);
+      border:none; border-radius:9px; font-size:calc(var(--u)*.82);
+      cursor:pointer; font-weight:700; display:flex; align-items:center;
+      gap:calc(var(--u)*.65); transition:opacity .15s;
+      text-transform:uppercase; letter-spacing:.05em; font-family:inherit;
+    }
+    .dbtn:hover { opacity:.82; }
+    .dbtn i     { font-size:calc(var(--u)*1.3); flex-shrink:0; }
+    .dlbl       { display:flex; flex-direction:column; align-items:flex-start; gap:1px; }
+    .dsub       { font-size:calc(var(--u)*.67); font-weight:500; opacity:.72; text-transform:none; letter-spacing:0; line-height:1.3; }
+    /* PNG: dark background */
+    .dpng  { background:var(--bn); color:var(--cr); }
+    /* USDZ: blue gradient with AR badge */
+    .dusdz { background:linear-gradient(135deg,var(--bp),var(--bm)); color:#fff; }
+    .badge { font-size:calc(var(--u)*.55); background:rgba(255,255,255,.22); padding:1px 4px; border-radius:3px; margin-left:3px; vertical-align:middle; }
+
+    /* ── Panel footer ── */
+    .ft { padding:calc(var(--u)*.4) calc(var(--u)*1.0) calc(var(--u)*.55); border-top:1px solid var(--br); flex-shrink:0; }
+    .ft a { color:var(--bp); text-decoration:none; border-bottom:1px solid var(--ce); }
+    .ft a:hover { color:var(--bn); }
+    .ft span { font-size:calc(var(--u)*.55); color:#8a9aaa; display:block; margin-top:1px; }
+
+    /* Dock group labels — small text above each row */
+    .dock-group-label {
+      font-size: calc(var(--u)*.63);
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.38);
+      margin-bottom: calc(var(--u)*.3);
+      display: block;
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       HOKUSAI — OVERLAY INSIDE THE 3D CANVAS
+       ══════════════════════════════════════════════════════════════
+       The Hokusai button no longer opens an external modal.
+       Instead, it shows the Wave image directly in the 3D column,
+       above the Three.js canvas, with a top banner that invites the child
+       to use "Pick colour" to sample a tone.
+       The button changes appearance when the overlay is open.             */
+
+    /* Thumbnail circle in the dock */
+    .dock-hokusai {
+      width:  clamp(48px, calc(var(--u)*3.4), 62px);
+      height: clamp(48px, calc(var(--u)*3.4), 62px);
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.55);
+      cursor: pointer;
+      flex-shrink: 0;
+      background: none;
+      box-shadow: 0 0 0 1px rgba(255,255,255,.18), 0 2px 8px rgba(0,0,0,.4);
+      transition: transform .14s, border-color .18s, box-shadow .18s;
+      overflow: hidden;
+      position: relative;
+    }
+    .dock-hokusai::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: url('img/The_Great_Wave_off_Kanagawa.jpg') center/cover no-repeat,
+                  url('https://upload.wikimedia.org/wikipedia/commons/0/0a/The_Great_Wave_off_Kanagawa.jpg') center/cover no-repeat;
+      transform: translateZ(0);
+    }
+    .dock-hokusai:hover, .dock-hokusai.hk-open {
+      transform: scale(1.18);
+      border-color: #fff;
+      box-shadow: 0 0 0 3px rgba(100,180,240,.5), 0 3px 14px rgba(0,0,0,.5);
+    }
+
+    /* Image overlay: covers the entire 3D column above the canvas */
+    #hk-canvas-overlay {
+      display: none;
+      position: absolute;
+      inset: 0;
+      z-index: 15;                            /* above canvas, below header */
+      flex-direction: column;
+      background: rgba(5,12,24,.96);
+    }
+    #hk-canvas-overlay.open { display: flex; }
+
+    /* Top instruction banner */
+    #hk-overlay-banner {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: calc(var(--u)*.55) calc(var(--u)*1.0);
+      background: rgba(26,52,90,.92);
+      border-bottom: 1px solid rgba(100,180,240,.25);
+    }
+    #hk-overlay-banner .hk-banner-msg {
+      font-size: calc(var(--u)*.75);
+      font-weight: 700;
+      color: rgba(255,255,255,.85);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+    }
+    #hk-overlay-banner .hk-banner-msg i {
+      color: #6bc8f0;
+      font-size: calc(var(--u)*1.1);
+      flex-shrink: 0;
+    }
+    #hk-overlay-close {
+      width: calc(var(--u)*3.2); height: calc(var(--u)*3.2);
+      min-width: 48px; min-height: 48px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.55);
+      background: rgba(255,255,255,.15);
+      color: #fff;
+      font-size: calc(var(--u)*1.3);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .14s, border-color .14s, transform .12s;
+      flex-shrink: 0;
+      box-shadow: 0 2px 10px rgba(0,0,0,.4);
+    }
+    #hk-overlay-close:hover {
+      background: rgba(220,60,50,.8);
+      border-color: rgba(255,120,100,.7);
+      transform: scale(1.12);
+    }
+
+    /* Image wrapper: adds micro-padding and hosts the Pick color button */
+    #hk-img-wrapper {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 12px 12px;   /* micro padding: top / sides / bottom */
+      overflow: hidden;
+      min-height: 0;             /* fix flexbox height collapse on Safari */
+    }
+
+    /* Image with rounded border and shadow */
+    #hk-overlay-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 18px;
+      border: 2.5px solid rgba(255,255,255,.22);
+      box-shadow: 0 6px 36px rgba(0,0,0,.65);
+      display: block;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+  </style>
+</head>
+<body>
+
+<h2 style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">
+  Waraiguma – ボビン / Bobin Maker
+</h2>
+
+<div class="hdr" id="hdr">
+  <div>
+    <div class="brand-name">WARAIGUMA</div>
+    <div class="brand-sub" data-t="brand_sub">il tono del sorriso</div>
+  </div>
+  <div class="hdr-tag">Il Mare Artigiano</div>
+  <div class="lrow">
+    <button class="lbtn on" id="btn-it" onclick="setLang('it')">IT</button>
+    <button class="lbtn"    id="btn-en" onclick="setLang('en')">EN</button>
+    <button class="lbtn"    id="btn-fr" onclick="setLang('fr')">FR</button>
+    <button class="lbtn"    id="btn-ja" onclick="setLang('ja')">JA</button>
+  </div>
+  <div class="hdr-credit">
+    <span>ボビン / Bobin Maker · Francesco Perchiazzi</span>
+    <a class="hdr-gh" href="https://github.com/francescoperchiazzi/bobin-maker" target="_blank" rel="noopener" aria-label="GitHub" title="GitHub">
+      <i class="ti ti-brand-github"></i>
+    </a>
+  </div>
+
+  <!-- Kids / Pro mode toggle — always visible in the header -->
+  <div id="mode-toggle" role="group" aria-label="Modalità interfaccia" data-aria="aria_mode_toggle">
+    <button class="mtbtn on" id="mtbtn-bambini"
+            onclick="setMode_UI('bambini')"
+            aria-pressed="true">
+      <i class="ti ti-mood-smile"></i><span data-t="mode_bambini">Bambini</span>
+    </button>
+    <button class="mtbtn" id="mtbtn-pro"
+            onclick="setMode_UI('pro')"
+            aria-pressed="false">
+      <i class="ti ti-settings-2"></i><span data-t="mode_pro">Pro</span>
+    </button>
+  </div>
+</div>
+
+<div class="main">
+
+  <div class="c3d-col">
+
+    <div id="c3d-canvas-host"></div>
+
+    <div id="ldr">
+      <div class="ln">Waraiguma · Bobin Maker</div>
+      <div class="ls" id="ltxt">…</div>
+    </div>
+
+    <div class="wmark">IL MARE ARTIGIANO</div>
+
+    <!-- Confirmation modal for a color sampled via EyeDropper -->
+    <div id="color-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="ccm-label-txt">
+      <div class="ccm-card">
+        <div class="ccm-swatch" id="ccm-swatch"></div>
+        <div class="ccm-label" id="ccm-label-txt" data-t="ccm_label">Colore selezionato</div>
+        <div class="ccm-hex" id="ccm-hex">#FFFFFF</div>
+        <div class="ccm-actions">
+          <button class="ccm-apply" onclick="applyPickedColor()">
+            <span data-t="ccm_apply">Applica colore</span>
+          </button>
+          <button class="ccm-cancel" onclick="cancelPickedColor()">
+            <span data-t="ccm_cancel">Annulla</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!--
+      Hokusai overlay — covers the 3D canvas with the Wave image.
+      #kids-color-btn lives inside the overlay and shows/hides with it.
+    -->
+    <div id="hk-canvas-overlay">
+      <div id="hk-overlay-banner">
+        <div class="hk-banner-msg">
+          <i class="ti ti-eyeglass-2"></i>
+          <span data-t="hk_overlay_hint">Ispirati dall'Onda — poi usa <b>Seleziona colore</b> per campionare un tono</span>
+        </div>
+        <button id="hk-overlay-close" onclick="closeHokusaiOverlay()" aria-label="Chiudi" data-aria="aria_close">
+          <i class="ti ti-x"></i>
+        </button>
+      </div>
+
+      <!-- Image wrapper: tiny padding + rounded border -->
+      <div id="hk-img-wrapper">
+        <img id="hk-overlay-img"
+             src="img/The_Great_Wave_off_Kanagawa.jpg"
+             alt="La grande onda di Kanagawa — Hokusai"
+             draggable="false"
+             onerror="onHokusaiImgError()">
+        <div id="hk-error" style="display:none;position:absolute;bottom:calc(var(--u)*1.2);left:50%;transform:translateX(-50%);background:rgba(200,60,40,.92);color:#fff;font-size:calc(var(--u)*.72);padding:calc(var(--u)*.35) calc(var(--u)*.8);border-radius:6px;pointer-events:none;white-space:nowrap;"></div>
+
+        <!-- Pick color button — only visible when the overlay is open -->
+        <div id="kids-color-btn"
+             role="button" tabindex="0"
+             onclick="kidsPickColor(event)"
+             onkeydown="if(event.key==='Enter'||event.key===' '){kidsPickColor(event);event.preventDefault()}"
+             aria-label="Seleziona colore" data-aria="aria_kids_pick">
+          <input type="color" id="ccpicker-kids" value="#FF3B3B"
+                 oninput="onPick(this.value)"
+                 onchange="onPick(this.value)">
+          <div class="kcb-left">
+            <div id="kids-color-swatch"></div>
+            <div class="kcb-left-txt">
+              <span class="kcb-mini" data-t="kids_current_lbl">Colore attuale</span>
+              <span id="kids-color-hex">#FF3B3B</span>
+            </div>
+          </div>
+          <div class="kcb-right">
+            <svg class="kcb-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M14 6l4 4" />
+              <path d="M5 19h4l9.5-9.5a2.1 2.1 0 0 0 0-3l-1-1a2.1 2.1 0 0 0-3 0L5 15v4z" />
+              <path d="M12.5 7.5l4 4" />
+            </svg>
+            <span data-t="kids_select_color">Seleziona colore</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="hokusai-canvas-label" class="hk-canvas-label">
+      <span data-t="hk_explore_lbl">Scopri i colori dell’Onda</span>
+    </div>
+
+    <!-- Large Hokusai button — floating on the canvas, always visible -->
+    <div id="hokusai-canvas-btn"
+         role="button" tabindex="0"
+         onclick="toggleHokusaiOverlay()"
+         onkeydown="if(event.key==='Enter'||event.key===' '){toggleHokusaiOverlay();event.preventDefault()}"
+         aria-label="Apri l'Onda di Hokusai" data-aria="aria_open_wave">
+    </div>
+
+    <div class="view-toolbar">
+      <button class="vtbtn on" id="btn-orbit" onclick="setMode('orbit')">
+        <i class="ti ti-rotate-clockwise"></i><span data-t="mode_orbit">Ruota</span>
+      </button>
+      <button class="vtbtn" id="btn-pan" onclick="setMode('pan')">
+        <i class="ti ti-hand-move"></i><span data-t="mode_pan">Pan</span>
+      </button>
+      <button class="vtbtn" id="btn-fit" onclick="fitToView()">
+        <i class="ti ti-maximize"></i><span data-t="mode_fit">Fit</span>
+      </button>
+      <button class="vtbtn" id="btn-autorot" onclick="toggleAutoRotate()">
+        <i class="ti ti-player-play"></i><span data-t="mode_auto">Auto</span>
+      </button>
+    </div>
+
+    <button id="canvas-capture-btn"
+            onclick="captureAndShare()"
+            aria-label="Condividi immagine del rocchetto" data-aria="aria_share"
+            title="Condividi" data-title="title_share">
+      <svg class="share-plane" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M3.5 11.5L21 3L13.2 20.5L10.3 13.7L3.5 11.5Z"></path>
+        <path class="fold" d="M21 3L10.3 13.7"></path>
+        <path class="fold" d="M10.3 13.7L13.2 20.5"></path>
+        <path class="fold" d="M3.5 11.5L10.3 13.7"></path>
+      </svg>
+    </button>
+
+    <div class="dock">
+      <!-- "My palette" row: always visible; swatches are inserted via JS -->
+      <div id="dock-mypal">
+        <span class="dock-group-label" data-t="dock_lbl_mypal">La mia palette</span>
+        <div class="mypal-row">
+          <!-- The large Hokusai button lives on the canvas (#hokusai-canvas-btn).
+               This placeholder keeps mypal-row layout compatibility. -->
+          <button class="dock-save-btn"
+                  onclick="addToMyPalette()"
+                  title="Aggiungi questo colore alla tua palette" data-title="title_add_mypal"
+                  aria-label="Aggiungi alla palette personale" data-aria="aria_add_mypal">
+            <i class="ti ti-heart"></i>
+          </button>
+          <!-- Saved swatches are inserted here by buildMyPalette() -->
+        </div>
+      </div>
+      <!-- Default palettes row: header (label + toggle) + separate swatches -->
+      <div class="dock-mainrow">
+        <div class="dock-palette-hdr">
+          <div class="dock-seg">
+            <button class="dock-seg-btn" id="dock-seg-kids" onclick="setPalMode('kids')" data-t="kids_palette">Bambini</button>
+            <button class="dock-seg-btn" id="dock-seg-onda" onclick="setPalMode('onda')" data-t="pal_onda">Onda</button>
+          </div>
+          <span class="dock-group-label" data-t="dock_lbl_palette">Palette colori</span>
+        </div>
+        <div class="dock-swatches" id="dock-swatches"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="panel">
+    <div class="pscroll">
+
+      <div>
+        <div class="sec">
+          <i class="ti ti-needle-thread"></i>
+          <div class="sec-t"><span class="slbl" data-t="sec_yarn">Struttura del filato</span></div>
+        </div>
+        <div class="tgrid">
+          <button class="tbtn on" onclick="setType(this,'smooth')">
+            <i class="ti ti-wave-sine"></i>
+            <span class="tbtn-lbl" data-t="type_smooth">Ritorto</span>
+          </button>
+          <button class="tbtn" onclick="setType(this,'boucle')">
+            <i class="ti ti-wave-square"></i>
+            <span class="tbtn-lbl" data-t="type_boucle">Bouclé</span>
+          </button>
+          <button class="tbtn" onclick="setType(this,'glitter')">
+            <i class="ti ti-sparkles"></i>
+            <span class="tbtn-lbl" data-t="type_glitter">Lamé</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div>
+        <div class="sec">
+          <i class="ti ti-palette"></i>
+          <div class="sec-t"><span class="slbl" data-t="custom_color_title">Tinta personalizzata</span></div>
+        </div>
+        <div class="cc-card">
+          <div id="cc-prev" class="cc-prev"></div>
+          <div class="cc-row">
+            <div class="cc-pick" id="cc-pick">
+              <input type="color" id="ccpicker" value="#FF3B3B" oninput="onPick(this.value)">
+            </div>
+            <!-- EyeDropper API button (Chrome/Edge): shown via JS only if window.EyeDropper exists -->
+            <button id="btn-eyedropper" onclick="attivaContagocce()"
+                    aria-label="Campiona un colore dallo schermo" data-aria="aria_eyedropper_pick"
+                    title="Contagocce — campiona un colore dallo schermo" data-title="title_eyedropper_pick">
+              <i class="ti ti-eyedropper"></i>
+            </button>
+            <input class="cc-hex" id="cchex" type="text" maxlength="7" value="#FF3B3B"
+                   oninput="onHex(this.value)" onfocus="this.select()">
+          </div>
+          <!-- Eyedropper button: opens the OS native picker (includes eyedropper on Safari/iOS) -->
+          <div class="cc-pick-full">
+            <input type="color" id="ccpicker2" value="#FF3B3B" oninput="onPick(this.value)">
+            <i class="ti ti-eyedropper"></i>
+            <span data-t="eyedropper_lbl">Contagocce colore</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div>
+        <div class="sec">
+          <i class="ti ti-vector-triangle"></i>
+          <div class="sec-t"><span class="slbl" data-t="sec_shape">Geometria rocchetto</span></div>
+        </div>
+
+        <div class="ctrl">
+          <div class="ctrl-h"><i class="ti ti-triangle"></i>
+            <label for="range-cone"><span data-t="cone_angle">Forma del cono</span><b id="av">6°</b></label>
+          </div>
+          <input id="range-cone" type="range" min="2" max="15" value="6" step="1"
+                 oninput="setSP('coneAngle',+this.value,'av',this.value+'°')">
+        </div>
+
+        <div class="ctrl">
+          <div class="ctrl-h"><i class="ti ti-arrows-vertical"></i>
+            <label for="range-height"><span data-t="height">Altezza</span><b id="hv">10 cm</b></label>
+          </div>
+          <input id="range-height" type="range" min="60" max="160" value="100" step="1"
+                 oninput="setSP('hScale',this.value/100,'hv',Math.round(this.value*10/100)+' cm')">
+        </div>
+
+        <div class="ctrl">
+          <div class="ctrl-h"><i class="ti ti-circle"></i>
+            <label for="range-radius"><span data-t="base_radius">Raggio rocchetto</span><b id="brv">5.0 cm</b></label>
+          </div>
+          <input id="range-radius" type="range" min="30" max="90" value="50" step="1"
+                 oninput="setSP('baseRadius',this.value/10,'brv',(this.value/10).toFixed(1)+' cm')">
+        </div>
+
+        <div class="ctrl">
+          <div class="ctrl-h"><i class="ti ti-layers-difference"></i>
+            <label for="range-layers"><span data-t="layers">Strati di filato</span><b id="lv">16</b></label>
+          </div>
+          <input id="range-layers" type="range" min="16" max="64" value="16" step="1"
+                 oninput="setSP('layers',+this.value,'lv',this.value)">
+        </div>
+
+        <div class="ctrl">
+          <div class="ctrl-h"><i class="ti ti-wave-sawtooth"></i>
+            <label for="range-irreg"><span data-t="irregularity">Irregolarità</span><b id="iv">55%</b></label>
+          </div>
+          <input id="range-irreg" type="range" min="0" max="100" value="55" step="1"
+                 oninput="setSP('irregularity',this.value/100,'iv',this.value+'%')">
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div>
+        <div class="sec">
+          <i class="ti ti-diamond"></i>
+          <div class="sec-t">
+            <span class="slbl" data-t="sec_material">Aspetto del filato</span>
+            <span class="shint" data-t="sec_material_hint">Opaco come la lana grezza, o lucido come la seta.</span>
+          </div>
+        </div>
+
+        <div class="rp-grid">
+          <div class="rp-item on" id="r0"
+               role="button" tabindex="0"
+               onclick="setRough(0.85,'r0')"
+               onkeydown="if(event.key==='Enter'||event.key===' '){setRough(0.85,'r0');event.preventDefault()}">
+            <div class="rp-dot" style="background:#e0d8cc;box-shadow:inset 0 0 0 3px #c8b89a"></div>
+            <span class="rp-lbl" data-t="rough_matt">Opaco<br>lana</span>
+          </div>
+          <div class="rp-item" id="r1"
+               role="button" tabindex="0"
+               onclick="setRough(0.48,'r1')"
+               onkeydown="if(event.key==='Enter'||event.key===' '){setRough(0.48,'r1');event.preventDefault()}">
+            <div class="rp-dot" style="background:radial-gradient(circle at 35% 35%,#f0e8d0,#c0a060);box-shadow:inset 0 0 0 3px #a08040"></div>
+            <span class="rp-lbl" data-t="rough_semi">Semi<br>cotone</span>
+          </div>
+          <div class="rp-item" id="r2"
+               role="button" tabindex="0"
+               onclick="setRough(0.08,'r2')"
+               onkeydown="if(event.key==='Enter'||event.key===' '){setRough(0.08,'r2');event.preventDefault()}">
+            <div class="rp-dot" style="background:radial-gradient(circle at 30% 30%,#ffffff,#8ab8d8 55%,#2a5a8a);box-shadow:inset 0 0 0 3px #4a7aaa"></div>
+            <span class="rp-lbl" data-t="rough_shiny">Lucido<br>seta</span>
+          </div>
+        </div>
+
+        <div class="ctrl">
+          <div class="ctrl-h"><i class="ti ti-circle-half-2"></i>
+            <label for="range-rough"><span data-t="roughness_label">Ruvidità della superficie</span><b id="rv">85%</b></label>
+          </div>
+          <input id="range-rough" type="range" min="0" max="100" value="85" step="1" oninput="setMat('roughness',this.value)">
+        </div>
+
+        <div class="ctrl">
+          <div class="ctrl-h"><i class="ti ti-sun"></i>
+            <label for="range-metal"><span data-t="metalness">Brillantezza metallica</span><b id="mv">0%</b></label>
+          </div>
+          <input id="range-metal" type="range" min="0" max="100" value="0" step="1" oninput="setMat('metalness',this.value)">
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="qt">
+        <p data-t="munari_quote">«Tu butti qualcosa al mare, e il mare te lo restituisce lavorato, finito, levigato… Lui fa solo pezzi unici e irripetibili, come le opere d'arte.»</p>
+        <cite>— Bruno Munari</cite>
+      </div>
+
+      <div class="erow">
+        <button class="dbtn dpng" onclick="downloadPNG()">
+          <i class="ti ti-photo-down"></i>
+          <div class="dlbl">
+            <span data-t="export_png">Esporta PNG</span>
+            <span class="dsub" data-t="export_png_sub">PNG ad alta risoluzione · tutti i rocchetti salvati</span>
+          </div>
+        </button>
+        <button class="dbtn dusdz" onclick="downloadUSDZ()">
+          <i class="ti ti-augmented-reality"></i>
+          <div class="dlbl">
+            <span data-t="export_usdz">Esporta USDZ<span class="badge">AR</span></span>
+            <span class="dsub" data-t="export_usdz_sub">apri in AR su iPhone / iPad</span>
+          </div>
+        </button>
+      </div>
+
+    </div><div class="ft">
+      <strong>Waraiguma · Il Mare Artigiano</strong>
+      <span id="ft-event"></span>
+      <div style="cursor:pointer;margin-top:calc(var(--u)*.3);display:flex;align-items:center;gap:4px" onclick="toggleAbout()">
+        <i class="ti ti-info-circle" style="font-size:calc(var(--u)*.9);color:var(--bp)"></i>
+        <span id="ft-about-lbl" style="font-size:calc(var(--u)*.65);color:var(--bp);font-weight:600;text-decoration:underline;text-underline-offset:2px"></span>
+      </div>
+      <div id="ft-about-panel" style="display:none;margin-top:calc(var(--u)*.4);border-top:1px solid var(--br);padding-top:calc(var(--u)*.4)">
+        <p id="ft-abstract" style="font-size:calc(var(--u)*.68);line-height:1.55;color:#4a6080;margin-bottom:calc(var(--u)*.4)"></p>
+        <p id="ft-story" style="font-size:calc(var(--u)*.66);line-height:1.55;color:#4a6080;margin-bottom:calc(var(--u)*.4)"></p>
+        <div id="ft-credits" style="font-size:calc(var(--u)*.65);color:#4a6080;line-height:1.7"></div>
+        <p id="ft-experimental" style="font-size:calc(var(--u)*.65);color:var(--bp);font-style:italic;margin-top:calc(var(--u)*.4);border-left:3px solid var(--ce);padding-left:calc(var(--u)*.5)"></p>
+      </div>
+    </div>
+
+  </div></div>
+  
+  <script src="vendor/three.r155.min.js"></script>
+
+<script>
+/* ════════════════════════════════════════════════════════════════════════════
+   SECTION 1 — INTERNATIONALIZATION (i18n)
+   ════════════════════════════════════════════════════════════════════════════
+
+   TR contains all UI strings in 4 languages.
+   The active language is stored in LANG (string 'it'|'en'|'fr'|'ja').
+
+   setLang(code) iterates over all [data-t] elements in the DOM and replaces
+   innerHTML with TR[lang][key]. innerHTML (not textContent) is used because
+   some strings include <br> tags for line breaks in the material presets.
+
+   Supported languages:
+     it → Italian (default)
+     en → English
+     fr → French
+     ja → Japanese
+   ════════════════════════════════════════════════════════════════════════════ */
+const TR = {
+
+  /* ── ITALIAN ── */
+  it: {
+    /* Yarn structure */
+    sec_yarn:       'Struttura del filato',
+    type_smooth:    'Ritorto',
+    type_boucle:    'Bouclé',
+    type_glitter:   'Lamé',
+    /* Tint */
+    custom_color_title: 'Tinta personalizzata',
+    eyedropper_lbl:     'Contagocce colore',
+    /* Bobbin geometry */
+    sec_shape:      'Geometria rocchetto',
+    cone_angle:     'Forma del cono',
+    height:         'Altezza',
+    base_radius:    'Raggio rocchetto',
+    layers:         'Strati di filato',
+    irregularity:   'Irregolarità',
+    /* PBR material */
+    sec_material:      'Aspetto del filato',
+    sec_material_hint: 'Opaco come la lana grezza, o lucido come la seta.',
+    brand_sub: 'il tono del sorriso',
+    rough_matt:  'Opaco<br>lana',
+    rough_semi:  'Semi<br>cotone',
+    rough_shiny: 'Lucido<br>seta',
+    roughness_label: 'Ruvidità della superficie',
+    metalness:       'Brillantezza metallica',
+    /* Munari */
+    munari_quote: '«Tu butti qualcosa al mare, e il mare te lo restituisce lavorato, finito, levigato… Lui fa solo pezzi unici e irripetibili, come le opere d\'arte.»',
+    /* Export */
+    export_png:     'Esporta PNG',
+    export_png_sub: 'PNG ad alta risoluzione · tutti i rocchetti salvati',
+    export_usdz:     'Esporta USDZ',
+    export_usdz_sub: 'apri in AR su iPhone / iPad',
+    err_usdz:        'Errore durante la generazione USDZ',
+    err_png:         'Errore durante la generazione PNG',
+    ldr_png:         'Generando immagini…',
+    /* UI mode */
+    mode_bambini:    'Bambini',
+    mode_pro:        'Pro',
+    kids_current_lbl: 'Colore attuale',
+    kids_select_color:'Seleziona colore',
+    /* Color confirmation modal */
+    ccm_label:       'Colore selezionato',
+    ccm_apply:       'Applica colore',
+    ccm_cancel:      'Annulla',
+    share_title_single:  'Rocchetto Waraiguma',
+    share_title_palette: 'La mia palette Waraiguma',
+    share_text_single:   '🎨 Il mio rocchetto colorato!',
+    share_text_palette:  '🎨 I miei rocchetti!',
+    /* Vista 3D */
+    mode_orbit: 'Ruota',
+    mode_pan:   'Pan',
+    mode_fit:   'Fit',
+    mode_auto:  'Auto',
+    /* Palette */
+    kids_palette: 'Bambini',
+    pal_onda:     'Onda',
+    dock_lbl_palette: 'Palette colori',
+    dock_lbl_mypal:   'La mia palette',
+    hk_overlay_hint:  'Ispirati dall\'Onda — poi usa <b>Seleziona colore</b> per campionare un tono',
+    /* Messaggi loader durante rebuild */
+    lc: 'Applicando tinta…',
+    lt: 'Cambiando filato…',
+    ls: 'Ricalcolando…',
+    ctx_restore: 'Ripristino grafica…',
+    lc_usdz: 'Generando USDZ…',
+    ldr_three: 'Caricamento grafica…',
+    err_three: 'Impossibile caricare la libreria grafica.',
+    /* a11y / titles */
+    aria_mode_toggle: 'Modalità interfaccia',
+    aria_close: 'Chiudi',
+    aria_kids_pick: 'Seleziona colore',
+    aria_eyedropper_pick: 'Campiona un colore dallo schermo',
+    aria_open_wave: 'Apri l’Onda di Hokusai',
+    aria_share: 'Condividi immagine del rocchetto',
+    title_share: 'Condividi',
+    title_eyedropper_pick: 'Contagocce — campiona un colore dallo schermo',
+    aria_add_mypal: 'Aggiungi alla palette personale',
+    title_add_mypal: 'Aggiungi questo colore alla tua palette',
+    title_remove_mypal: 'Rimuovi dalla palette',
+    aria_remove_mypal: 'Rimuovi colore dalla palette personale',
+    /* Footer */
+    ft_event:       'Waraiguma · Il Mare come Artigiano · Museo della Moda Napoli · 9–12 giugno 2026 · Lab a cura di Paola Maddaluno',
+    ft_about_lbl:   'Sul progetto',
+    ft_about_close: 'Chiudi',
+    ft_abstract:    '«Il Mare come Artigiano» è un laboratorio creativo per bambini promosso dal Comune di Napoli, dedicato ai modi di ideazione e realizzazione di un tessuto. Bambini di sei anni disegnano su tablet e tessono su telai a mano, ispirati alle lezioni di Bruno Munari.',
+    ft_story:       'Weekend project di Francesco Perchiazzi, nato durante il ponte del 2 giugno per il laboratorio «Il Mare come Artigiano», in collaborazione con la cooperativa L\'Orsa Maggiore e dedicato ai bambini. Le prime prove sono state fatte informalmente con sua figlia Celeste, per mantenere l\'interfaccia chiara e giocosa per bambini di sei anni.',
+    ft_experimental:'Applicazione sperimentale per l\'evento «Il Mare come Artigiano» — Museo della Moda Napoli, 9–12 giugno 2026.',
+    /* Hokusai picker */
+    hk_tip:          'Colori dall\'Onda',
+    hk_explore_lbl:  'Scopri i colori dell’Onda',
+    hk_img_error:    'Errore: immagine non trovata.', /* Fix N-2 */
+    ft_credits:     '<b>Waraiguma</b> · <b>Il Mare come Artigiano</b><br><b>Museo della Moda Napoli</b> · 9–12 giugno 2026 · Lab a cura di Paola Maddaluno<br><br><b>Promosso da:</b> <a href="https://www.comune.napoli.it/persona_pubblica/chiara-marciani/" target="_blank" rel="noopener">Comune di Napoli</a> — Chiara Marciani<br><b>Cooperativa:</b> <a href="https://www.orsamaggiore.net" target="_blank" rel="noopener">L\'Orsa Maggiore</a> — Francesca D\'Onofrio<br><b>Sede:</b> <a href="https://museodellamodanapoli.com" target="_blank" rel="noopener">Museo della Moda di Napoli</a><br><b>A cura di:</b> Paola Maddaluno<br><b>Tech:</b> <a href="https://vimar1991.com" target="_blank" rel="noopener">Vimar 1991</a> – <a href="https://www.chanel.com" target="_blank" rel="noopener">Chanel Group</a><br><b>Immagine Onda:</b> <a href="https://commons.wikimedia.org/wiki/File:The_Great_Wave_off_Kanagawa.jpg" target="_blank" rel="noopener">The Great Wave off Kanagawa</a> (copia locale). Licenza/diritti: fai riferimento alla pagina Wikimedia Commons per i termini ufficiali. Asset di terze parti, non coperto dalla licenza MIT del progetto.<br><b>Three.js:</b> r155 (copia locale: <a href="./vendor/three.r155.min.js" target="_blank" rel="noopener">three.r155.min.js</a>)'
+  },
+
+  /* ── ENGLISH ── */
+  en: {
+    sec_yarn:       'Yarn structure',
+    type_smooth:    'Twisted',
+    type_boucle:    'Bouclé',
+    type_glitter:   'Lamé',
+    custom_color_title: 'Custom tint',
+    eyedropper_lbl:     'Colour eyedropper',
+    sec_shape:      'Bobbin geometry',
+    cone_angle:     'Cone shape',
+    height:         'Height',
+    base_radius:    'Bobbin radius',
+    layers:         'Yarn layers',
+    irregularity:   'Irregularity',
+    sec_material:      'Yarn appearance',
+    sec_material_hint: 'Matt like raw wool, or glossy like silk.',
+    brand_sub: 'the tone of a smile',
+    rough_matt:  'Matt<br>wool',
+    rough_semi:  'Semi<br>cotton',
+    rough_shiny: 'Glossy<br>silk',
+    roughness_label: 'Surface roughness',
+    metalness:       'Metallic sheen',
+    munari_quote: '"You throw something into the sea, and the sea gives it back worked, finished, polished… it only makes unique, unrepeatable pieces, like works of art."',
+    export_png:     'Export PNG',
+    export_png_sub: 'high-res PNG · all saved bobbins',
+    export_usdz:     'Export USDZ',
+    export_usdz_sub: 'open in AR on iPhone / iPad',
+    err_usdz:        'Error generating USDZ',
+    err_png:         'Error generating PNG',
+    ldr_png:         'Generating images…',
+    mode_bambini:    'Kids',
+    mode_pro:        'Pro',
+    kids_current_lbl: 'Current colour',
+    kids_select_color:'Select a colour',
+    ccm_label:       'Selected colour',
+    ccm_apply:       'Apply colour',
+    ccm_cancel:      'Cancel',
+    share_title_single:  'Waraiguma Bobbin',
+    share_title_palette: 'My Waraiguma Palette',
+    share_text_single:   '🎨 My coloured bobbin!',
+    share_text_palette:  '🎨 My bobbins!',
+    mode_orbit: 'Rotate',
+    mode_pan:   'Pan',
+    mode_fit:   'Fit',
+    mode_auto:  'Auto',
+    kids_palette: 'Kids',
+    pal_onda:     'Wave',
+    dock_lbl_palette: 'Colour palette',
+    dock_lbl_mypal:   'My palette',
+    hk_overlay_hint:  'Let the Wave inspire you — then use <b>Select a colour</b> to sample a tone',
+    /* Messaggi loader */
+    lc: 'Applying tint…',
+    lt: 'Changing yarn…',
+    ls: 'Recalculating…',
+    ctx_restore: 'Restoring graphics…',
+    lc_usdz: 'Generating USDZ…',
+    ldr_three: 'Loading graphics…',
+    err_three: 'Unable to load the graphics library.',
+    /* a11y / titles */
+    aria_mode_toggle: 'Interface mode',
+    aria_close: 'Close',
+    aria_kids_pick: 'Select a colour',
+    aria_eyedropper_pick: 'Pick a colour from the screen',
+    aria_open_wave: 'Open Hokusai’s Wave',
+    aria_share: 'Share bobbin image',
+    title_share: 'Share',
+    title_eyedropper_pick: 'Eyedropper — pick a colour from the screen',
+    aria_add_mypal: 'Add to personal palette',
+    title_add_mypal: 'Add this colour to your palette',
+    title_remove_mypal: 'Remove from palette',
+    aria_remove_mypal: 'Remove colour from personal palette',
+    ft_event:       'Waraiguma · Il Mare come Artigiano · Naples Fashion Museum · 9–12 June 2026 · Lab by Paola Maddaluno',
+    ft_about_lbl:   'About the project',
+    ft_about_close: 'Close',
+    ft_abstract:    '«The Sea as Craftsman» is a creative workshop for children promoted by the City of Naples, exploring how fabrics are conceived and made. Six-year-olds draw on tablets and weave on hand looms, inspired by Bruno Munari\'s lessons.',
+    ft_story:       'A weekend project by Francesco Perchiazzi, created during the June 2 long weekend for the «Il Mare come Artigiano» workshop, in collaboration with the L\'Orsa Maggiore co-operative and dedicated to children. Early iterations were tested informally with his daughter Celeste to keep the interface clear and playful for six-year-olds.',
+    ft_experimental:'Experimental app for the «Il Mare come Artigiano» event — Naples Fashion Museum, 9–12 June 2026.',
+    /* Hokusai picker */
+    hk_tip:          'Colours from the Wave',
+    hk_explore_lbl:  'Discover the Wave colours',
+    hk_img_error:    'Error: image not found.', /* Fix N-2 */
+    ft_credits:     '<b>Waraiguma</b> · <b>Il Mare come Artigiano</b><br><b>Naples Fashion Museum</b> · 9–12 June 2026 · Lab by Paola Maddaluno<br><br><b>Promoted by:</b> <a href="https://www.comune.napoli.it/persona_pubblica/chiara-marciani/" target="_blank" rel="noopener">City of Naples</a> — Chiara Marciani<br><b>Co-operative:</b> <a href="https://www.orsamaggiore.net" target="_blank" rel="noopener">L\'Orsa Maggiore</a> — Francesca D\'Onofrio<br><b>Venue:</b> <a href="https://museodellamodanapoli.com" target="_blank" rel="noopener">Naples Fashion Museum</a><br><b>Curated by:</b> Paola Maddaluno<br><b>Tech:</b> <a href="https://vimar1991.com" target="_blank" rel="noopener">Vimar 1991</a> – <a href="https://www.chanel.com" target="_blank" rel="noopener">Chanel Group</a><br><b>Wave image:</b> <a href="https://commons.wikimedia.org/wiki/File:The_Great_Wave_off_Kanagawa.jpg" target="_blank" rel="noopener">The Great Wave off Kanagawa</a> (local copy). License/rights: please refer to the Wikimedia Commons page for the authoritative terms. Third-party asset, not covered by the project\'s MIT license.<br><b>Three.js:</b> r155 (local copy: <a href="./vendor/three.r155.min.js" target="_blank" rel="noopener">three.r155.min.js</a>)'
+  },
+
+  /* ── FRANÇAIS ── */
+  fr: {
+    sec_yarn:       'Structure du fil',
+    type_smooth:    'Retors',
+    type_boucle:    'Bouclé',
+    type_glitter:   'Lamé',
+    custom_color_title: 'Teinte personnalisée',
+    eyedropper_lbl:     'Pipette couleur',
+    sec_shape:      'Géométrie de la bobine',
+    cone_angle:     'Forme du cône',
+    height:         'Hauteur',
+    base_radius:    'Rayon de la bobine',
+    layers:         'Couches de fil',
+    irregularity:   'Irrégularité',
+    sec_material:      'Aspect du fil',
+    sec_material_hint: 'Mat comme la laine brute, ou brillant comme la soie.',
+    brand_sub: 'le ton du sourire',
+    rough_matt:  'Mat<br>laine',
+    rough_semi:  'Semi<br>coton',
+    rough_shiny: 'Brillant<br>soie',
+    roughness_label: 'Rugosité de surface',
+    metalness:       'Éclat métallique',
+    munari_quote: '«Tu jettes quelque chose dans la mer, et la mer te le rend travaillé, fini, poli… Elle ne fait que des pièces uniques et irremplaçables, comme des œuvres d\'art.»',
+    export_png:     'Exporter PNG',
+    export_png_sub: 'PNG haute résolution · toutes les bobines sauvegardées',
+    export_usdz:     'Exporter USDZ',
+    export_usdz_sub: 'ouvrir en AR sur iPhone / iPad',
+    err_usdz:        'Erreur lors de la génération USDZ',
+    err_png:         'Erreur lors de la génération PNG',
+    ldr_png:         'Génération des images…',
+    mode_bambini:    'Enfants',
+    mode_pro:        'Pro',
+    kids_current_lbl: 'Couleur actuelle',
+    kids_select_color:'Sélectionner une couleur',
+    ccm_label:       'Couleur sélectionnée',
+    ccm_apply:       'Appliquer la couleur',
+    ccm_cancel:      'Annuler',
+    share_title_single:  'Bobine Waraiguma',
+    share_title_palette: 'Ma palette Waraiguma',
+    share_text_single:   '🎨 Ma bobine colorée !',
+    share_text_palette:  '🎨 Mes bobines !',
+    mode_orbit: 'Tourner',
+    mode_pan:   'Pan',
+    mode_fit:   'Cadrer',
+    mode_auto:  'Auto',
+    kids_palette: 'Enfants',
+    pal_onda:     'Vague',
+    dock_lbl_palette: 'Palette de couleurs',
+    dock_lbl_mypal:   'Ma palette',
+    hk_overlay_hint:  'Inspirez-vous de la Vague — puis utilisez <b>Sélectionner une couleur</b> pour échantillonner une teinte',
+    /* Messaggi loader */
+    lc: 'Application de la teinte…',
+    lt: 'Changement du fil…',
+    ls: 'Recalcul…',
+    ctx_restore: 'Restauration graphique…',
+    lc_usdz: 'Génération USDZ…',
+    ldr_three: 'Chargement graphique…',
+    err_three: 'Impossible de charger la bibliothèque graphique.',
+    /* a11y / titles */
+    aria_mode_toggle: 'Mode d’interface',
+    aria_close: 'Fermer',
+    aria_kids_pick: 'Sélectionner une couleur',
+    aria_eyedropper_pick: 'Prélever une couleur à l’écran',
+    aria_open_wave: 'Ouvrir la Vague de Hokusai',
+    aria_share: 'Partager l’image de la bobine',
+    title_share: 'Partager',
+    title_eyedropper_pick: 'Pipette — prélever une couleur à l’écran',
+    aria_add_mypal: 'Ajouter à la palette personnelle',
+    title_add_mypal: 'Ajouter cette couleur à votre palette',
+    title_remove_mypal: 'Retirer de la palette',
+    aria_remove_mypal: 'Retirer la couleur de la palette personnelle',
+    ft_event:       'Waraiguma · Il Mare come Artigiano · Musée de la Mode de Naples · 9–12 juin 2026 · Atelier dirigé par Paola Maddaluno',
+    ft_about_lbl:   'À propos du projet',
+    ft_about_close: 'Fermer',
+    ft_abstract:    '«La Mer Artisane» est un atelier créatif pour enfants promu par la Ville de Naples, consacré à la conception et à la réalisation d\'un tissu. Des enfants de six ans dessinent sur tablette et tissent sur des métiers à main, inspirés par les leçons de Bruno Munari.',
+    ft_story:       'Un projet de week-end de Francesco Perchiazzi, créé pendant le week-end prolongé du 2 juin pour l’atelier «Il Mare come Artigiano», en collaboration avec la coopérative L\'Orsa Maggiore et dédié aux enfants. Les premières versions ont été testées avec sa fille Celeste afin de garder l’interface simple et ludique pour des enfants de six ans.',
+    ft_experimental:'Application expérimentale pour l\'événement «Il Mare come Artigiano» — Musée de la Mode de Naples, 9–12 juin 2026.',
+    /* Hokusai picker */
+    hk_tip:          'Couleurs de la Vague',
+    hk_explore_lbl:  'Découvrir les couleurs de la Vague',
+    hk_img_error:    'Erreur: image introuvable.', /* Fix N-2 */
+    ft_credits:     '<b>Waraiguma</b> · <b>Il Mare come Artigiano</b><br><b>Musée de la Mode de Naples</b> · 9–12 juin 2026 · Atelier dirigé par Paola Maddaluno<br><br><b>Promu par:</b> <a href="https://www.comune.napoli.it/persona_pubblica/chiara-marciani/" target="_blank" rel="noopener">Ville de Naples</a> — Chiara Marciani<br><b>Coopérative:</b> <a href="https://www.orsamaggiore.net" target="_blank" rel="noopener">L\'Orsa Maggiore</a> — Francesca D\'Onofrio<br><b>Lieu:</b> <a href="https://museodellamodanapoli.com" target="_blank" rel="noopener">Musée de la Mode de Naples</a><br><b>Organisé par:</b> Paola Maddaluno<br><b>Tech:</b> <a href="https://vimar1991.com" target="_blank" rel="noopener">Vimar 1991</a> – <a href="https://www.chanel.com" target="_blank" rel="noopener">Chanel Group</a><br><b>Image de la Vague:</b> <a href="https://commons.wikimedia.org/wiki/File:The_Great_Wave_off_Kanagawa.jpg" target="_blank" rel="noopener">The Great Wave off Kanagawa</a> (copie locale). Licence/droits: veuillez vous référer à la page Wikimedia Commons pour les conditions officielles. Asset tiers, non couvert par la licence MIT du projet.<br><b>Three.js:</b> r155 (copie locale: <a href="./vendor/three.r155.min.js" target="_blank" rel="noopener">three.r155.min.js</a>)'
+  },
+
+  /* ── 日本語 (JAPANESE) ── */
+  ja: {
+    sec_yarn:       '糸の構造',
+    type_smooth:    '撚り糸',
+    type_boucle:    'ブークレ',
+    type_glitter:   'ラメ',
+    custom_color_title: 'カスタムカラー',
+    eyedropper_lbl:     'スポイトで色を選ぶ',
+    sec_shape:      'ボビンの形状',
+    cone_angle:     'コーン角度',
+    height:         '高さ',
+    base_radius:    'ボビン半径',
+    layers:         '糸の層数',
+    irregularity:   '不規則性',
+    sec_material:   '糸の質感',
+    sec_material_hint: '生ウールのようなマットから、シルクのような光沢まで。',
+    brand_sub: 'ほほえみの色',
+    rough_matt:  'マット<br>ウール',
+    rough_semi:  'セミ<br>コットン',
+    rough_shiny: '光沢<br>シルク',
+    roughness_label: '表面の粗さ',
+    metalness:       'メタリック光沢',
+    munari_quote: '「海に何かを投げ込むと、海はそれを加工し、仕上げ、磨いて返してくれる…海は芸術作品のように、唯一無二の作品しか作らない。」',
+    export_png:     'PNG 書き出し',
+    export_png_sub: '高解像度 PNG · 保存済みのすべてのボビン',
+    export_usdz:     'USDZ 書き出し',
+    export_usdz_sub: 'iPhone / iPad で AR 表示',
+    err_usdz:        'USDZ生成エラー',
+    err_png:         'PNG生成エラー',
+    ldr_png:         '画像を生成中…',
+    mode_bambini:    'キッズ',
+    mode_pro:        'プロ',
+    kids_current_lbl: '現在の色',
+    kids_select_color:'色を選択',
+    ccm_label:       '選択した色',
+    ccm_apply:       '色を適用',
+    ccm_cancel:      'キャンセル',
+    share_title_single:  'Waraigumaボビン',
+    share_title_palette: '私のWaraigumaパレット',
+    share_text_single:   '🎨 私のカラーボビン！',
+    share_text_palette:  '🎨 私のボビンたち！',
+    mode_orbit: '回転',
+    mode_pan:   'パン',
+    mode_fit:   'フィット',
+    mode_auto:  '自動',
+    kids_palette: 'こども',
+    pal_onda:     '波',
+    dock_lbl_palette: 'カラーパレット',
+    dock_lbl_mypal:   'マイパレット',
+    hk_overlay_hint:  '波からインスピレーションを — <b>色を選ぶ</b>を使って色をサンプリングしてください',
+    /* Messaggi loader */
+    lc: '色を適用中…',
+    lt: '糸を変更中…',
+    ls: '再計算中…',
+    ctx_restore: '描画を復元中…',
+    lc_usdz: 'USDZを生成中…',
+    ldr_three: '描画エンジンを読み込み中…',
+    err_three: '描画ライブラリを読み込めませんでした。',
+    /* a11y / titles */
+    aria_mode_toggle: '表示モード',
+    aria_close: '閉じる',
+    aria_kids_pick: '色を選択',
+    aria_eyedropper_pick: '画面から色を取得',
+    aria_open_wave: '北斎の波を開く',
+    aria_share: 'ボビン画像を共有',
+    title_share: '共有',
+    title_eyedropper_pick: 'スポイト — 画面から色を取得',
+    aria_add_mypal: 'マイパレットに追加',
+    title_add_mypal: 'この色をパレットに追加',
+    title_remove_mypal: 'パレットから削除',
+    aria_remove_mypal: 'マイパレットから色を削除',
+    ft_event:       'Waraiguma · Il Mare come Artigiano · ナポリ・ファッション博物館 · 2026年6月9〜12日 · Paola Maddaluno 監修',
+    ft_about_lbl:   'プロジェクトについて',
+    ft_about_close: '閉じる',
+    ft_abstract:    '「職人の海」は、ナポリ市が推進する子どものための創造的ワークショップです。6歳の子どもたちがタブレットで絵を描き、手織り機で布を織ります。ブルーノ・ムナーリの教えにインスピレーションを受けた活動です。',
+    ft_story:       'Francesco Perchiazzi が 6 月 2 日の連休に「Il Mare come Artigiano」のために作った週末プロジェクトです。協同組合 L\'Orsa Maggiore と協力し、子どもたちのために作られました。娘の Celeste と試しながら、6 歳前後の子どもでも直感的に遊べるように調整しました。',
+    ft_experimental:'「Il Mare come Artigiano」イベントのための実験的アプリ — ナポリ・ファッション博物館、2026年6月9〜12日。',
+    /* Hokusai picker */
+    hk_tip:          '波から色を選ぶ',
+    hk_explore_lbl:  '波の色を見つける',
+    hk_img_error:    'エラー：画像が見つかりません。', /* Fix N-2 */
+    ft_credits:     '<b>Waraiguma</b> · <b>Il Mare come Artigiano</b><br><b>ナポリ・ファッション博物館</b> · 2026年6月9〜12日 · Paola Maddaluno 監修<br><br><b>主催:</b> <a href="https://www.comune.napoli.it/persona_pubblica/chiara-marciani/" target="_blank" rel="noopener">ナポリ市</a> — Chiara Marciani<br><b>協同組合:</b> <a href="https://www.orsamaggiore.net" target="_blank" rel="noopener">L\'Orsa Maggiore</a> — Francesca D\'Onofrio<br><b>会場:</b> <a href="https://museodellamodanapoli.com" target="_blank" rel="noopener">ナポリ・ファッション博物館</a><br><b>キュレーター:</b> Paola Maddaluno<br><b>Tech:</b> <a href="https://vimar1991.com" target="_blank" rel="noopener">Vimar 1991</a> – <a href="https://www.chanel.com" target="_blank" rel="noopener">Chanel Group</a><br><b>波の画像:</b> <a href="https://commons.wikimedia.org/wiki/File:The_Great_Wave_off_Kanagawa.jpg" target="_blank" rel="noopener">The Great Wave off Kanagawa</a>（ローカルコピー）。ライセンス/権利: 公式条件はWikimedia Commonsページを参照してください。第三者アセットのため、プロジェクトのMITライセンスの対象外です。<br><b>Three.js:</b> r155（ローカルコピー: <a href="./vendor/three.r155.min.js" target="_blank" rel="noopener">three.r155.min.js</a>）'
+  }
+};
+
+/* Current language — modified only by setLang() */
+let LANG = 'it';
+
+/*
+  setLang(l) — cambia la lingua dell'intera interfaccia
+  ──────────────────────────────────────────────────────
+  1. Updates LANG
+  2. Highlights the correct button in the lrow
+  3. Writes the translated text from TR[l] into each [data-t] element
+  4. Calls initFooter() because footer texts are handled separately
+     (innerHTML, not only textContent)
+*/
+function setLang(l) {
+  LANG = l;
+  /* Updates the lang attribute on the <html> element — screen readers and SEO */
+  document.documentElement.lang = l;
+  /* Update all language buttons */
+  ['it','en','fr','ja'].forEach(c => {
+    const b = document.getElementById('btn-'+c);
+    if(b) b.classList.toggle('on', c === l);
+  });
+  /* Update every element with [data-t] */
+  document.querySelectorAll('[data-t]').forEach(el => {
+    const v = TR[l][el.getAttribute('data-t')];
+    if(v !== undefined) el.innerHTML = v;
+  });
+  /* Update aria-label attributes via [data-aria] */
+  document.querySelectorAll('[data-aria]').forEach(el => {
+    const v = TR[l][el.getAttribute('data-aria')];
+    if(v !== undefined) el.setAttribute('aria-label', v);
+  });
+  /* Update title attributes via [data-title] */
+  document.querySelectorAll('[data-title]').forEach(el => {
+    const v = TR[l][el.getAttribute('data-title')];
+    if(v !== undefined) el.setAttribute('title', v);
+  });
+  initFooter();
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   SECTION 2 — COLOR PALETTES
+   ════════════════════════════════════════════════════════════════════════════
+
+   Two palettes are available and selectable from the bottom dock:
+
+   PALETTE_KIDS (default) — saturated, vibrant colors for children
+     Designed to be quickly recognizable by kids aged ~5–7.
+     Primary, secondary, and a few extra tones. White included.
+
+   PALETTE (Wave theme) — Mediterranean sea tones
+     Inspired by water, sand, and sky along the Neapolitan coast.
+     Shades of blue, light blue, beige, and brown.
+
+   kidsMode:boolean → true = kids palette (default), false = wave palette
+   setPalMode(mode) → updates kidsMode and rebuilds dock swatches
+   buildSwatches()  → creates .dock-sw elements in #dock-swatches
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* Kids palette: 12 vibrant colors */
+const PALETTE_KIDS = [
+  '#FF3B3B', /* bright red          */
+  '#FF7F11', /* orange              */
+  '#FFD400', /* sunny yellow        */
+  '#7BC950', /* apple green         */
+  '#00B4D8', /* sky blue            */
+  '#5E60CE', /* indigo              */
+  '#FF6EB4', /* candy pink          */
+  '#FFFFFF', /* white               */
+  '#8B4513', /* chocolate brown     */
+  '#2D6A4F', /* forest green        */
+  '#F72585', /* fuchsia             */
+  '#4CC9F0'  /* icy light blue      */
+];
+
+/* Wave palette: 12 sea tones */
+const PALETTE = [
+  '#1a2a4a', /* deep night blue     */
+  '#2a4a7a', /* mid blue            */
+  '#4a7aaa', /* steel blue          */
+  '#8ab8d8', /* light blue          */
+  '#b8d8e8', /* pale sky            */
+  '#ddeaf4', /* sea white           */
+  '#c8a86a', /* golden sand         */
+  '#a07840', /* dark sand           */
+  '#d8c898', /* light sand          */
+  '#6a5030', /* beach brown         */
+  '#384860', /* deep teal           */
+  '#e8e0cc'  /* shell cream         */
+];
+
+/*
+  kidsMode = true → the kids palette is the DEFAULT.
+  On startup the dock shows "Kids" as the active tab.
+*/
+let kidsMode = true;
+
+/*
+  setPalMode(mode)
+  ─────────────────
+  Receives 'kids' or 'onda', updates kidsMode,
+  highlights the correct button, and rebuilds the swatches.
+*/
+function setPalMode(m) {
+  kidsMode = (m === 'kids');
+  document.getElementById('dock-seg-kids').classList.toggle('on',  kidsMode);
+  document.getElementById('dock-seg-onda').classList.toggle('on', !kidsMode);
+  buildSwatches();
+}
+
+/*
+  buildSwatches()
+  ────────────────
+  Clears #dock-swatches and recreates .dock-sw elements for the active palette.
+  Each swatch has: background color, an .on class if it's the current color,
+  and an onclick handler that calls setColor(hex).
+  Finally, it syncs the dock color picker with S.color.
+*/
+function buildSwatches() {
+  const pal = kidsMode ? PALETTE_KIDS : PALETTE;
+  const g = document.getElementById('dock-swatches');
+  if(!g) return;
+  g.innerHTML = '';
+  pal.forEach(hex => {
+    const d = document.createElement('div');
+    d.className = 'dock-sw' + (hex.toLowerCase() === S.color.toLowerCase() ? ' on' : '');
+    d.style.setProperty('--sw', hex);
+    d.title = hex;
+    d.onclick = () => {
+      /* Clear selection, then select the clicked swatch */
+      document.querySelectorAll('.dock-sw').forEach(s => s.classList.remove('on'));
+      d.classList.add('on');
+      setColor(hex);
+    };
+    g.appendChild(d);
+  });
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   SECTION 2B — CHILD PERSONAL PALETTE
+   ════════════════════════════════════════════════════════════════════════════
+
+   MYPAL — array with up to 8 saved entries.
+   Each entry is { hex: '#RRGGBB', name: '' }.
+   Persistence uses localStorage (key: 'waraiguma_mypal').
+   The second dock row (#dock-mypal) is shown/hidden automatically
+   based on MYPAL length.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+const Store = {
+  getJSON(key, fallback = null) {
+    try {
+      const raw = localStorage.getItem(key);
+      if(!raw) return fallback;
+      return JSON.parse(raw);
+    } catch {
+      return fallback;
+    }
+  },
+  setJSON(key, value) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+      return true;
+    } catch {
+      return false;
+    }
+  },
+  remove(key) {
+    try { localStorage.removeItem(key); } catch {}
+  }
+};
+
+/* Load the saved palette, or start with an empty array */
+let MYPAL = (() => {
+  const parsed = Store.getJSON('waraiguma_mypal', []);
+  return Array.isArray(parsed) ? parsed.slice(0, 8) : [];
+})();
+
+/*
+  addToMyPalette()
+  ────────────────────
+  Adds a full snapshot of the current state (S) to the personal palette.
+  Each entry stores { hex, name, params }, where params is a shallow copy of S.
+  This allows saving shape, type, and material per bobbin, not just the color.
+  Duplicates are ignored and the limit (8) is enforced.
+  Saves to localStorage and rebuilds the UI.
+*/
+function addToMyPalette() {
+  const h = S.color.toUpperCase();
+  const sig = _bobbinSig({ ...S, color: h });
+  if(MYPAL.some(e => _bobbinSig({ ...(e.params || {}), color: (e.hex || '').toUpperCase() }) === sig)) return;
+  /* Visual limit */
+  if(MYPAL.length >= 8) return;
+  MYPAL.push({ hex: h, name: '', params: { ...S } });
+  buildMyPalette();
+}
+
+function _bobbinSig(p) {
+  const num = (v, d = 4) => (typeof v === 'number' ? Number(v.toFixed(d)) : v);
+  return JSON.stringify({
+    color: String(p.color || '').toUpperCase(),
+    type: String(p.type || ''),
+    coneAngle: num(p.coneAngle, 2),
+    hScale: num(p.hScale, 4),
+    baseRadius: num(p.baseRadius, 3),
+    layers: num(p.layers, 0),
+    irregularity: num(p.irregularity, 4),
+    roughness: num(p.roughness, 4),
+    metalness: num(p.metalness, 4)
+  });
+}
+
+/*
+  buildMyPalette()
+  ─────────────────
+  Clears and rebuilds #dock-mypal using MYPAL.
+  If MYPAL is empty, hides the second row without taking space.
+  Each swatch has:
+    - the same .dock-sw style as the main swatches
+    - a .dock-my-wrap wrapper with an × remove button
+  The onclick restores the full S snapshot (shape + material + color),
+  syncs the right panel controls via syncPanelUI(), then triggers a rebuild.
+  Always persists to localStorage.
+*/
+function buildMyPalette() {
+  Store.setJSON('waraiguma_mypal', MYPAL);
+
+  const g = document.getElementById('dock-mypal');
+  if(!g) return;
+
+  /* Removes only the previous swatches (keeps labels and fixed actions) */
+  g.querySelectorAll('.dock-my-wrap').forEach(el => el.remove());
+
+  const row = g.querySelector('.mypal-row');
+  if(!row) return;
+
+  MYPAL.forEach((entry, idx) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'dock-my-wrap';
+
+    const d = document.createElement('div');
+    d.className = 'dock-sw' + (entry.hex.toUpperCase() === S.color.toUpperCase() ? ' on' : '');
+    d.style.setProperty('--sw', entry.hex);
+    d.title = entry.hex;
+    d.onclick = () => {
+      document.querySelectorAll('.dock-sw').forEach(s => s.classList.remove('on'));
+      d.classList.add('on');
+      const snap = { ...entry.params };
+      Object.assign(S, snap);
+      syncPanelUI(snap);
+      setColor(snap.color);
+    };
+
+    const x = document.createElement('button');
+    x.className = 'dock-my-remove';
+    x.textContent = '×';
+    x.title = TR[LANG].title_remove_mypal;
+    x.setAttribute('data-title', 'title_remove_mypal');
+    x.setAttribute('aria-label', TR[LANG].aria_remove_mypal);
+    x.setAttribute('data-aria', 'aria_remove_mypal');
+    x.onclick = e => {
+      e.stopPropagation();
+      MYPAL.splice(idx, 1);
+      buildMyPalette();
+    };
+
+    wrap.appendChild(d);
+    wrap.appendChild(x);
+    row.appendChild(wrap);
+  });
+}
+
+
+/*
+  syncPanelUI(snap)
+  ──────────────────
+  Syncs all right-panel controls with an S snapshot.
+  Called when restoring a bobbin saved in the personal palette.
+  Updates: type buttons, slider values, slider labels, roughness preset cards.
+*/
+function syncPanelUI(snap) {
+  /* ── Type buttons ── */
+  const tBtns = document.querySelectorAll('.tbtn');
+  tBtns.forEach(b => b.classList.remove('on'));
+  const typeIdx = { smooth: 0, boucle: 1, glitter: 2 };
+  const ti = typeIdx[snap.type];
+  if(tBtns[ti] !== undefined) tBtns[ti].classList.add('on');
+
+  /* ── Slider sync via ID (stable, not dependent on handler text) ── */
+  const setSl = (id, val) => {
+    const el = document.getElementById(id);
+    if(el) el.value = val;
+  };
+  setSl('range-cone',   snap.coneAngle);
+  setSl('range-height', Math.round(snap.hScale * 100));
+  setSl('range-radius', Math.round(snap.baseRadius * 10));
+  setSl('range-layers', snap.layers);
+  setSl('range-irreg',  Math.round(snap.irregularity * 100));
+  setSl('range-rough',  Math.round(snap.roughness * 100));
+  setSl('range-metal',  Math.round(snap.metalness * 100));
+
+  /* ── Numeric labels ── */
+  setTxt('av',  snap.coneAngle + '°');
+  setTxt('hv',  Math.round(10 * snap.hScale) + ' cm');
+  setTxt('brv', snap.baseRadius.toFixed(1) + ' cm');
+  setTxt('lv',  String(snap.layers));
+  setTxt('iv',  Math.round(snap.irregularity * 100) + '%');
+  setTxt('rv',  Math.round(snap.roughness * 100) + '%');
+  setTxt('mv',  Math.round(snap.metalness * 100) + '%');
+
+  /* ── Roughness preset cards (r0/r1/r2) — activates the nearest ── */
+  const presets = [[0.85,'r0'],[0.48,'r1'],[0.08,'r2']];
+  document.querySelectorAll('.rp-item').forEach(el => el.classList.remove('on'));
+  const nearest = presets.reduce((a, b) =>
+    Math.abs(a[0] - snap.roughness) <= Math.abs(b[0] - snap.roughness) ? a : b
+  );
+  const rEl = document.getElementById(nearest[1]);
+  if(rEl) rEl.classList.add('on');
+}
+
+/*
+  dataURLtoBlob(dataUrl)
+  ───────────────────────
+  Converts a base64 data URL into a Blob without using fetch().
+  fetch(dataURL) fails on Safari under the file:// protocol.
+  Used by captureAndShare() to prepare the file for sharing.
+*/
+function dataURLtoBlob(dataUrl) {
+  const parts = dataUrl.split(',');
+  const mime  = parts[0].match(/:(.*?);/)[1];
+  const bstr  = atob(parts[1]);
+  const arr   = new Uint8Array(bstr.length);
+  for(let i = 0; i < bstr.length; i++) arr[i] = bstr.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   SECTION 3 — GLOBAL APPLICATION STATE
+   ════════════════════════════════════════════════════════════════════════════
+
+   S (Settings) centralizes all bobbin geometry and material parameters.
+   It is the single source of truth: all UI controls read/write S, and
+   buildBobbin() uses S.
+
+   Fields:
+     color       → yarn tint (hex string)
+     type        → 'smooth' | 'boucle' | 'glitter'
+     coneAngle   → cone angle in degrees
+     hScale      → height multiplier (1.0 = 10cm)
+     baseRadius  → outer winding radius in cm
+     layers      → number of TubeGeometry layers
+     irregularity→ PRNG noise coefficient [0–1]
+     roughness   → PBR roughness [0–1]
+     metalness   → PBR metalness [0–1]
+   ════════════════════════════════════════════════════════════════════════════ */
+const S = {
+  color:        '#FF3B3B', /* initial color: kids red */
+  type:         'smooth',
+  coneAngle:    6,
+  hScale:       1,
+  baseRadius:   5.0,
+  layers:       16,
+  irregularity: .55,
+  roughness:    .85,
+  metalness:    0
+};
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   SECTION 4 — THREE.JS INITIALIZATION
+   ════════════════════════════════════════════════════════════════════════════
+
+   Global renderer and scene variables.
+   Kept separate from S for architectural clarity.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+let renderer;     /* THREE.WebGLRenderer — rendering engine */
+let scene;        /* THREE.Scene — scene graph */
+let camera;       /* THREE.PerspectiveCamera — viewpoint */
+let bobbinGrp;    /* THREE.Group — contains all bobbin geometry */
+let sharedNormalMap = null; /* Global normal map to avoid unnecessary creation/disposal */
+
+/* Orbit camera state */
+let camMode   = 'orbit'; /* 'orbit' | 'pan' */
+let rotY      = .4;      /* current Y rotation (radians) */
+let rotX      = .12;     /* current X rotation (radians) */
+let rotZ      = 0;       /* Z rotation (right-click drag) */
+let panX      = 0;       /* camera pan X */
+let panY      = 0;       /* camera pan Y */
+
+/* panY offset to compensate for the dock covering the bottom of the canvas.
+   Computed by _updateDockPanOffset() and applied in fitToView().
+   Negative = camera looks down → the bobbin moves up on screen. */
+let _dockPanYOffset = 0;
+
+/* Mouse drag state */
+let isDrag    = false;   /* dragging? */
+let isRD      = false;   /* right-button drag? */
+let lmx       = 0;       /* last mouse X */
+let lmy       = 0;       /* last mouse Y */
+let vx        = 0;       /* angular velocity X (inertia) */
+let vy        = 0;       /* angular velocity Y (inertia) */
+
+/* Slow auto-rotation — enabled on load */
+let autoRotate = true;
+
+/* Camera zoom — tz = target, cz = current (interpolated) */
+let tz = 4.2;
+let cz = 4.2;
+
+/*
+  Dynamic canvas background — smooth interpolation.
+  _bgCurrent: current color sent to renderer.setClearColor() each frame.
+  _bgTarget:  target color computed by updateCanvasBg() on color change.
+  The lerp in animate() creates a smooth transition (~20 frames at 60fps).
+*/
+let _bgCurrent = null;  /* initialized after the renderer in initRenderer() */
+let _bgTarget  = null;
+
+/*
+  Buffers for USDZ export.
+  yV / yI → yarn vertices and indices (accumulated by buildYarn)
+  cV / cI_ → core vertices and indices (accumulated by buildCore)
+  These arrays are cleared and rebuilt on every rebuild.
+*/
+let yV = [], yI = [], yUV = [], cV = [], cI_ = [];
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   SECTION 5 — UTILITIES
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/*
+  prng(seed) — deterministic pseudo-random number generator
+  ──────────────────────────────────────────────────────────
+  LCG (Linear Congruential Generator) implementation using Numerical Recipes
+  parameters. Returns a function that yields a float [0, 1) on each call.
+  Used in buildYarn and addFuzz to ensure that the same seed always produces
+  the same bobbin (reproducibility).
+  seed=42 → yarn, seed=7 → boucle fuzz, seed=13 → glitter particles.
+*/
+const prng = seed => {
+  let s = seed | 0;
+  return () => {
+    s = (s * 1664525 + 1013904223) & 0xffffffff;
+    return (s >>> 0) / 4294967296;
+  };
+};
+
+/* setTxt(id, val) — updates an element's textContent by id, safe (no throw) */
+const setTxt = (id, v) => { const e = document.getElementById(id); if(e) e.textContent = v; };
+
+/*
+  showLdr(msg) / hideLdr()
+  ─────────────────────────
+  Shows/hides the loading overlay with the provided message.
+  showLdr is called before heavy async operations (geometry rebuild, USDZ export).
+  hideLdr is called at the end.
+*/
+let _ldrHideT = null;
+const showLdr = t => {
+  const el = document.getElementById('ldr');
+  if(!el) return;
+  if(_ldrHideT) { clearTimeout(_ldrHideT); _ldrHideT = null; }
+  el.style.display = 'flex';
+  el.classList.remove('on');
+  setTxt('ltxt', t);
+  requestAnimationFrame(() => el.classList.add('on'));
+};
+const hideLdr = () => {
+  const el = document.getElementById('ldr');
+  if(!el) return;
+  el.classList.remove('on');
+  if(_ldrHideT) clearTimeout(_ldrHideT);
+  _ldrHideT = setTimeout(() => { el.style.display = 'none'; _ldrHideT = null; }, 200);
+};
+
+/*
+  tick() — micro-pausa asincrona
+  ───────────────────────────────
+  Returns a Promise that resolves on the next frame.
+  Used with `await tick()` to yield to the browser so the loader can paint
+  before heavy computation.
+*/
+const tick = () => new Promise(resolve => {
+  requestAnimationFrame(() => requestAnimationFrame(resolve));
+});
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   SECTION 6 — INIT (Three.js startup)
+   ════════════════════════════════════════════════════════════════════════════ */
+
+async function init() {
+  /*
+    Reads the real canvas host size AFTER the browser has computed layout.
+    If offsetWidth is 0 (e.g. display:none), uses reasonable fallbacks.
+  */
+  const host = document.getElementById('c3d-canvas-host');
+  const W = host.offsetWidth  || window.innerWidth  * .6;
+  const H = host.offsetHeight || window.innerHeight - 60;
+
+  /* ── Renderer ──
+     antialias:true         → MSAA for smoother edges
+     alpha:true             → transparent background (used by PNG export)
+     preserveDrawingBuffer  → required by toDataURL() for PNG export
+                              (otherwise the buffer is cleared after each frame) */
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(W, H);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
+  renderer.outputColorSpace  = THREE.SRGBColorSpace;
+  renderer.toneMapping       = THREE.ReinhardToneMapping;
+  renderer.toneMappingExposure = 0.72;
+
+  /* Initialize dynamic background */
+  _bgCurrent = new THREE.Color(0x0d1828);
+  _bgTarget  = new THREE.Color(0x0d1828);
+  renderer.setClearColor(_bgCurrent, 1);
+
+  /* Insert the canvas into the DOM */
+  host.appendChild(renderer.domElement);
+
+  renderer.domElement.addEventListener('webglcontextlost', e => {
+    e.preventDefault();
+    showLdr(TR[LANG]?.ctx_restore ?? 'Restoring graphics…');
+  }, false);
+
+  renderer.domElement.addEventListener('webglcontextrestored', async () => {
+    showLdr(TR[LANG]?.ctx_restore ?? 'Restoring graphics…');
+    await tick();
+    try {
+      sharedNormalMap = null;
+      await buildBobbin();
+    } finally {
+      hideLdr();
+    }
+  }, false);
+
+  /* ── Scene and camera ── */
+  scene  = new THREE.Scene();
+  /* No scene.background: background is handled by renderer.setClearColor with lerp */
+
+  camera = new THREE.PerspectiveCamera(36, W/H, .1, 300);
+  /* Initial position: slightly above and pulled back */
+  camera.position.set(0, .4, cz);
+  camera.lookAt(0, .1, 0);
+
+  /* Add lights to the scene */
+  addLights();
+
+  /* Build the bobbin geometry (async operation) */
+  await buildBobbin();
+
+  /* Hide the loader and start secondary systems */
+  hideLdr();
+  setup3DCtrl(); /* mouse/touch event listeners */
+  buildSwatches();
+  buildMyPalette();
+  updateCustomUI(S.color);
+  initFooter();
+  setHdrH();    /* measure and set --hdr-h */
+  setDockH();   /* measure and set --dock-h (for #kids-color-btn) */
+  animate();    /* render loop */
+  setMode_UI('bambini'); /* default mode: right panel hidden */
+}
+
+/*
+  setHdrH()
+  ──────────
+  Legge l'altezza dell'header e la scrive in --hdr-h.
+  Un ResizeObserver la aggiorna automaticamente se l'header
+  cambia dimensione (es. viewport stretta con wrapping).
+  Questo garantisce che .main abbia sempre l'altezza giusta.
+*/
+function setHdrH() {
+  const hdrEl = document.getElementById('hdr');
+  if(!hdrEl) return;
+  const apply = () => document.documentElement.style.setProperty('--hdr-h', hdrEl.offsetHeight + 'px');
+  apply();
+  new ResizeObserver(apply).observe(hdrEl);
+}
+
+/*
+  setDockH()
+  ──────────
+  Misura l'altezza del dock (position:absolute, bottom:0) e la scrive in
+  --dock-h su :root. Serve a posizionare #kids-color-btn esattamente sopra
+  il dock invece di usare un valore fisso — indipendente dal contenuto del
+  dock (my palette presente o no) e dall'altezza safe-area-inset-bottom.
+  Un ResizeObserver la aggiorna automaticamente se il dock cambia altezza.
+*/
+function setDockH() {
+  const dockEl = document.querySelector('.dock');
+  if(!dockEl) return;
+  const apply = () => {
+    const dockH = dockEl.offsetHeight;
+    document.documentElement.style.setProperty('--dock-h', dockH + 'px');
+    _updateDockPanOffset(dockH);
+  };
+  apply();
+  new ResizeObserver(apply).observe(dockEl);
+}
+
+/*
+  _updateDockPanOffset(dockH)
+  ────────────────────────────
+  Converte l'altezza del dock (px) in offset world-space per panY, così il
+  rocchetto appare centrato nel rettangolo visibile (sopra il dock) anziché
+  nel canvas intero.
+
+  worldH = 2 · cz · tan(FOV/2)   → altezza scena in world units alla distanza camera
+  worldPerPx = worldH / canvasH   → conversione pixel→world
+  offset = –(dockH/2) · worldPerPx  (negativo: lookAt scende → rocchetto sale)
+
+  Applicato subito a panY e a ogni reset di fitToView().
+*/
+function _updateDockPanOffset(dockH) {
+  const canvasEl = document.getElementById('c3d-canvas-host');
+  if(!canvasEl || !camera) return;
+  const canvasH = canvasEl.offsetHeight;
+  if(canvasH < 1) return;
+  const fovRad = camera.fov * Math.PI / 180;
+  const camZ = (camera && camera.position) ? camera.position.z : cz;
+  const worldH = 2 * Math.max(.1, camZ) * Math.tan(fovRad / 2);
+  _dockPanYOffset = -(dockH / 2) * (worldH / canvasH);
+  panY = _dockPanYOffset;
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   SECTION 7 — LIGHTING
+   ════════════════════════════════════════════════════════════════════════════
+
+   Classic three-point lighting setup:
+
+   Ambient light — fills shadows, cool bluish tone
+   Sun (key light) — main light, warm white, creates soft shadows
+   Fill light      — fill light, cool blue, reduced intensity
+   Rim light       — back rim light, separates the bobbin from the background
+
+   Lights are added directly to the scene (not to bobbinGrp) so they stay fixed
+   while the bobbin rotates.
+   ════════════════════════════════════════════════════════════════════════════ */
+function addLights() {
+  /* Ambient light: low intensity, sea-blue tone */
+  scene.add(new THREE.AmbientLight(0xc8d8e8, 0.18));
+
+  /* Sun (key light): high intensity, 3/4 top-front-right position
+     castShadow:true + 2048 shadowMap for crisp shadows */
+  const sun = new THREE.DirectionalLight(0xfff4e0, 2.2);
+  sun.position.set(6, 12, 7);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.camera.near = .5;
+  sun.shadow.camera.far  = 40;
+  sun.shadow.camera.left = sun.shadow.camera.bottom = -3;
+  sun.shadow.camera.right = sun.shadow.camera.top   =  3;
+  sun.shadow.bias = -.0005; /* prevents shadow acne */
+  scene.add(sun);
+
+  /* Fill light: lower-left, bluish, ~1/8 of the key */
+  const fill = new THREE.DirectionalLight(0xadc8e8, 0.28);
+  fill.position.set(-6, 4, -2);
+  scene.add(fill);
+
+  /* Rim light: lower-back, bluish, creates the "glow outline" */
+  const rim = new THREE.DirectionalLight(0x8ab8d8, 0.20);
+  rim.position.set(0, 1, -9);
+  scene.add(rim);
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   SECTION 8 — BOBBIN GEOMETRY
+   ════════════════════════════════════════════════════════════════════════════
+
+   The bobbin is composed of two parts built separately:
+
+   buildCore()  → the core (wood/plastic): cylinder + rims + hole + ribs
+   buildYarn()  → the wound yarn layers (TubeGeometry curves + effects)
+
+   Both are children of bobbinGrp (THREE.Group), which rotates as a whole.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/*
+  coneR(y, tR, bR, hH) — cone radius at height y
+  ──────────────────────────────────────────────────
+  Linear interpolation between the top radius (tR) and base radius (bR).
+  Used both for the core and the yarn envelope.
+    y   → vertical position (range [-hH, +hH])
+    tR  → top radius
+    bR  → base radius
+    hH  → half of the total height
+*/
+const coneR = (y, tR, bR, hH) => bR + (tR - bR) * (y + hH) / (2 * hH);
+
+/*
+  makeNormal() — generates a procedural bump texture
+  ──────────────────────────────────────────────────────
+  Creates a 512×512 CanvasTexture with sinusoidal waves to simulate the
+  micro-geometry of twisted yarn. Used as a normalMap on MeshStandardMaterial
+  to add surface detail without extra geometry.
+  repeat(3,8): 3 horizontal repeats, 8 vertical repeats over the tube UVs.
+*/
+function makeNormal() {
+  const s = 512;
+  const c = document.createElement('canvas'); c.width = c.height = s;
+  const ctx = c.getContext('2d'), id = ctx.createImageData(s, s);
+  for(let y = 0; y < s; y++) for(let x = 0; x < s; x++) {
+    const u = x/s, v = y/s;
+    /* Composite sinusoidal wave to simulate yarn twist */
+    const w = Math.sin(u * Math.PI*48 + v * Math.PI*7) * .5 + .5;
+    const i = (y*s + x) * 4;
+    id.data[i]   = w * 127 + 128;                       /* R → normal X */
+    id.data[i+1] = Math.cos(w * Math.PI*2) * 127 + 128; /* G → normal Y */
+    id.data[i+2] = 210;                                 /* B → normal Z (fixed, pointing up) */
+    id.data[i+3] = 255;
+  }
+  ctx.putImageData(id, 0, 0);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(3, 8);
+  return t;
+}
+
+/*
+  buildBobbin() — rebuilds the entire 3D bobbin group
+  ─────────────────────────────────────────────────────────────
+  Called at init and whenever a parameter in S changes.
+  Before rebuilding, it disposes all GPU resources from the previous group
+  (geometries and materials) to avoid VRAM leaks.
+*/
+async function buildBobbin() {
+  /* GPU cleanup for the previous group */
+  if(bobbinGrp) {
+    bobbinGrp.traverse(o => {
+      if(o.isMesh || o.isPoints || o.isLine) {
+        if(o.geometry) o.geometry.dispose();
+        if(o.material) {
+          const mats = Array.isArray(o.material) ? o.material : [o.material];
+          mats.forEach(m => {
+            if(m.map && m.map !== sharedNormalMap) m.map.dispose();
+            if(m.normalMap && m.normalMap !== sharedNormalMap) m.normalMap.dispose();
+            m.dispose();
+          });
+        }
+      }
+    });
+    scene.remove(bobbinGrp);
+    bobbinGrp = null;
+  }
+
+  /* Reset dei buffer USDZ */
+  bobbinGrp = new THREE.Group();
+  yV = []; yI = []; yUV = []; cV = []; cI_ = [];
+
+  /*
+    Scale constant SC=0.1: the bobbin is modeled in Three.js units where
+    1 unit = 10cm in the real world.
+    All radii and heights are multiplied by SC.
+  */
+  const SC      = 0.1;
+  const halfH   = 5.0 * S.hScale * SC;           /* half body height */
+  const ang     = S.coneAngle * Math.PI / 180;    /* cone angle in radians */
+  const hR      = .8  * SC;  /* center hole radius */
+  const cT      = 1.4 * SC;  /* core radius at the top */
+  const cB      = 1.6 * SC;  /* core radius at the base */
+  const eB      = S.baseRadius * SC; /* yarn outer radius at the base */
+  /* Outer radius at the top: ensures a minimum yarn thickness */
+  const eT      = Math.max(eB - Math.tan(ang) * halfH * 2, cT + .5*SC);
+
+  /* Update slider labels (height and radius) */
+  setTxt('brv', S.baseRadius.toFixed(1) + ' cm');
+  setTxt('hv',  Math.round(10 * S.hScale) + ' cm');
+
+  /* Build the two parts */
+  buildCore(bobbinGrp, cT, cB, halfH, hR, eT, eB);
+  buildYarn(bobbinGrp, cT, cB, halfH, eT, eB);
+
+  /* Slightly centers the bobbin in the scene */
+  bobbinGrp.position.y = -halfH * .15;
+  scene.add(bobbinGrp);
+}
+
+/* ── buildCore ──────────────────────────────────────────────────────────────
+   Builds the bobbin core: the inner wood/plastic structure that the yarn
+   is wound around.
+
+   Components:
+     1. Outer cylinder (truncated cone)  → core main body
+     2. Inner hole                       → the central through hole
+     3. Top rim                          → torus rim at the top
+     4. Bottom rim                       → torus rim at the base
+     5. 5 decorative ribs                → evenly spaced thin rings
+
+   For each main component, the corresponding accum*USDZ() function is also
+   called to accumulate vertices and indices into cV/cI_ for export.
+   ─────────────────────────────────────────────────────────────────────────── */
+function buildCore(grp, tR, bR, hH, hR, eT, eB) {
+  const SEG  = 64;  /* cylinder segments (quality) */
+  const TSEG = 20;  /* torus cross-section segments */
+
+  /* Rim radii: half the difference between the core and the hole */
+  const lipRT  = (tR - hR) / 2;
+  const lipRB  = (bR - hR) / 2;
+  const midRT  = hR + lipRT;  /* top torus center */
+  const midRB  = hR + lipRB;  /* bottom torus center */
+
+  /* Core main material: matte golden wood */
+  const cMat   = new THREE.MeshStandardMaterial({ color: new THREE.Color('#c9a86c'), roughness: .80, metalness: .03 });
+  /* Rim material: slightly lighter and semi-glossy wood */
+  const lipMat = new THREE.MeshStandardMaterial({ color: new THREE.Color('#d4b06a'), roughness: .55, metalness: .08 });
+
+  /* 1. Outer cylinder: CylinderGeometry with open=true (no caps) */
+  const cGeo = new THREE.CylinderGeometry(tR, bR, hH*2, SEG, 1, true);
+  grp.add(Object.assign(new THREE.Mesh(cGeo, cMat), { castShadow: true }));
+  accumCylUSDZ(tR, bR, hH, SEG, cV, cI_); /* accumulate for USDZ */
+
+  /* 2. Inner hole: cylinder rendered on both sides to avoid double-dispose */
+  const iGeo = new THREE.CylinderGeometry(hR, hR, hH*2, 40, 1, true);
+  grp.add(new THREE.Mesh(iGeo, new THREE.MeshStandardMaterial({ color: new THREE.Color('#1e0e04'), roughness: .95, side: THREE.DoubleSide })));
+  accumCylUSDZ(hR, hR, hH, 40, cV, cI_); /* accumulate for USDZ */
+
+  /* 3. Top rim: torus rotated 90° around X to orient it horizontally */
+  const lipGeoT = new THREE.TorusGeometry(midRT, lipRT, TSEG, SEG);
+  const lipT    = new THREE.Mesh(lipGeoT, lipMat);
+  lipT.rotation.x = Math.PI / 2;
+  lipT.position.y = hH;
+  grp.add(lipT);
+  accumTorusUSDZ(midRT, lipRT, TSEG, SEG,  hH, cV, cI_);
+
+  /* 4. Labbro inferiore: idem, posizionato a -hH */
+  const lipGeoB = new THREE.TorusGeometry(midRB, lipRB, TSEG, SEG);
+  const lipB    = new THREE.Mesh(lipGeoB, lipMat);
+  lipB.rotation.x = Math.PI / 2;
+  lipB.position.y = -hH;
+  grp.add(lipB);
+  accumTorusUSDZ(midRB, lipRB, TSEG, SEG, -hH, cV, cI_);
+
+  /* 5. Decorative ribs: 5 thin rings (3mm radius) evenly spaced on the core
+       body. Each rib radius follows coneR() to match the body's taper. */
+  const lMat = new THREE.MeshStandardMaterial({ color: new THREE.Color('#9a7028'), roughness: .85 });
+  for(let i = 0; i < 5; i++) {
+    const fy = -hH*.85 + i * (hH*1.7/4); /* evenly spaced height */
+    const r  = coneR(fy, tR, bR, hH);   /* radius at that height */
+    const rg = new THREE.Mesh(new THREE.TorusGeometry(r, .003, 6, 64), lMat);
+    rg.rotation.x = Math.PI / 2;
+    rg.position.y = fy;
+    grp.add(rg);
+    accumTorusUSDZ(r, .003, 6, 64, fy, cV, cI_); /* accumulate rib for USDZ */
+  }
+}
+
+/* ── buildYarn ──────────────────────────────────────────────────────────────
+   Generates the yarn layers wound around the core.
+
+   Algorithm for each layer L (0 to S.layers-1):
+     1. Generate a sequence of 3D points following a helix around the core,
+        with PRNG noise for irregularity
+     2. Build a CatmullRomCurve3 through those points
+     3. Extrude a circular cross-section along the curve → TubeGeometry
+     4. Add the mesh to the group
+     5. Every 4 layers, clone the material and slightly vary the color
+        to simulate natural yarn tonal variation
+
+   Special modes:
+     boucle  → looser loops, thicker section, + addFuzz()
+     glitter → more coils, thinner section, higher metalness, + addGlitter()
+
+   For USDZ export, only a sample of 8 evenly spaced layers is accumulated into
+   yV/yI (to avoid making the .usda file excessively heavy).
+   ─────────────────────────────────────────────────────────────────────────── */
+function buildYarn(grp, cT, cB, hH, eT, eB) {
+  /* Shared bump texture for all yarn materials, generated once */
+  if(!sharedNormalMap) sharedNormalMap = makeNormal();
+  const nmap = sharedNormalMap;
+
+  const baseColor = new THREE.Color(S.color);
+
+  /* Base material: PBR using S parameters + normalMap */
+  const baseMat = new THREE.MeshStandardMaterial({
+    color:       baseColor,
+    roughness:   S.roughness,
+    metalness:   S.metalness,
+    normalMap:   nmap,
+    normalScale: new THREE.Vector2(.85, .85)
+  });
+
+  /* Lame: forces high metalness and low roughness regardless of the sliders */
+  if(S.type === 'glitter') {
+    baseMat.metalness = Math.max(S.metalness, .7);
+    baseMat.roughness = Math.min(S.roughness, .18);
+  }
+
+  /* Tube thickness: boucle is thicker, glitter is very thin */
+  const baseThick = S.type === 'boucle'   ? .024
+                  : S.type === 'glitter'  ? .010
+                  :                         .013;
+
+  /* Coil density per unit height:
+     glitter → tighter coils for a shimmer effect
+     boucle  → looser coils for loops */
+  const coilDensity = S.type === 'boucle'  ? 46
+                    : S.type === 'glitter' ? 90
+                    :                        65;
+
+  const layers = S.layers;
+  const rng    = prng(42); /* fixed seed for reproducibility */
+
+  /* Indices of layers to export to USDZ (max 8 evenly spaced samples) */
+  const nExp = Math.min(8, layers);
+  const eSet = new Set();
+  for(let i = 0; i < nExp; i++) eSet.add(Math.round(i * (layers-1) / (nExp-1||1)));
+
+  for(let L = 0; L < layers; L++) {
+    const tL         = L / (layers-1 || 1); /* normalized parameter [0,1] */
+    const coils      = Math.round(coilDensity * (1 + tL*.12)); /* denser towards the outside */
+    const steps      = coils * 22;           /* points for the curve */
+    const pitchBase  = (hH*2) / coils;       /* nominal pitch between coils */
+    const pts        = [];                   /* 3D helix points */
+
+    for(let i = 0; i <= steps; i++) {
+      const u     = i / steps;
+      const angle = u * Math.PI*2 * coils;
+
+      /* Height: linear helix + noise for real-yarn irregularity */
+      let y = -hH + u*hH*2 + pitchBase * (rng()-.5) * S.irregularity * 2.2;
+      y = Math.max(-hH*.97, Math.min(hH*.97, y)); /* clamp to stay within the core */
+
+      /* Radius: interpolation between core radius and envelope radius,
+         weighted by layer tL (layer 0 → near the core, 1 → outermost) */
+      const rCore  = coneR(y, cT, cB, hH);
+      const rEnv   = coneR(y, eT, eB, hH);
+      const baseR  = rCore + .008 + (rEnv - rCore - .008) * tL;
+
+      /* Radial and angular noise to break geometric regularity */
+      const rn = (rng()-.5) * S.irregularity * .035; /* radial variation */
+      const an = (rng()-.5) * S.irregularity * .07;  /* angular variation */
+      /* Boucle loops: extra random radial offset */
+      const bb = S.type === 'boucle' ? (rng()-.5)*.028 : 0;
+
+      pts.push(new THREE.Vector3(
+        Math.cos(angle + an) * (baseR + rn + bb),
+        y,
+        Math.sin(angle + an) * (baseR + rn + bb)
+      ));
+    }
+
+    /* Catmull-Rom curve: smooth interpolation between helix points.
+       tension=0.5 is the default and yields natural curves. */
+    const curve  = new THREE.CatmullRomCurve3(pts, false, 'catmullrom', .5);
+    /* Cross-section radius: boucle has per-layer random variation */
+    const tubeR  = baseThick * (S.type === 'boucle' ? 1 + rng()*.2 : 1);
+    /* TubeGeometry: extrudes the circular section along the curve */
+    const geo    = new THREE.TubeGeometry(curve, steps, tubeR, S.type === 'boucle' ? 6 : 5, false);
+
+    /* Only accumulate sampled layers for USDZ */
+    if(eSet.has(L)) accumIndexed(geo, yV, yI, yUV);
+
+    /* Tone variation every 4 layers: clone material and darken/lighten */
+    let mat = baseMat;
+    if(L % 4 === 0) {
+      mat = baseMat.clone();
+      mat.color = baseColor.clone().multiplyScalar(.76 + rng()*.14);
+    }
+
+    grp.add(Object.assign(new THREE.Mesh(geo, mat), { castShadow: true }));
+  }
+
+  /* Post-layer effects */
+  if(S.type === 'boucle')  addFuzz(grp, cT, cB, hH, eB, baseMat);
+  if(S.type === 'glitter') addGlitter(grp, eT, eB, hH);
+}
+
+/*
+  addFuzz(grp, ...) — adds the characteristic boucle fuzz
+  ──────────────────────────────────────────────────────────────────
+  Generates 400 short strands (3-point TubeGeometry) protruding from the bobbin
+  surface in semi-random directions.
+  Each strand has a slightly different color to simulate natural wool variation.
+*/
+function addFuzz(grp, cT, cB, hH, eB, mat) {
+  const rng = prng(7); /* different seed from buildYarn for independence */
+  for(let i = 0; i < 400; i++) {
+    const theta = rng() * Math.PI*2;
+    const y     = -hH + rng() * hH*2;
+    /* Radial position: between core and envelope */
+    const cr  = coneR(y, cT, cB, hH) + (eB - cT) * rng()*.8;
+    const len = .02 + rng()*.05; /* strand length: 2–7mm */
+    /* Starting point on the surface */
+    const sv = new THREE.Vector3(Math.cos(theta)*cr, y, Math.sin(theta)*cr);
+    /* Random direction with dominant radial component */
+    const dv = new THREE.Vector3(
+      Math.cos(theta)*(rng()*.4+.5),
+      (rng()-.5)*.5,
+      Math.sin(theta)*(rng()*.4+.5)
+    ).normalize();
+    /* Strand mid and end points */
+    const mv = sv.clone().addScaledVector(dv, len*.5);
+    const ev = sv.clone().addScaledVector(dv, len);
+    /* Cloned material with varied color */
+    const fm = mat.clone();
+    fm.color = new THREE.Color(S.color).multiplyScalar(.8 + rng()*.32);
+    grp.add(new THREE.Mesh(
+      new THREE.TubeGeometry(new THREE.CatmullRomCurve3([sv,mv,ev]), 5, .0036, 4, false),
+      fm
+    ));
+  }
+}
+
+/*
+  addGlitter(grp, ...) — adds glitter particles for lame
+  ───────────────────────────────────────────────────────────────────
+  Generates 700 THREE.Points distributed on the bobbin surface.
+  Each point is a tiny yellow-gold disc with size attenuation (smaller when
+  farther from the camera). This simulates the metallic threads of lame.
+*/
+function addGlitter(grp, tR, bR, hH) {
+  const rng = prng(13); /* seed 13 for particles */
+  const N   = 700;
+  const v   = new Float32Array(N * 3); /* particles XYZ buffer */
+  for(let i = 0; i < N; i++) {
+    const theta = rng() * Math.PI*2;
+    const y     = -hH + rng() * hH*2;
+    /* Place particles just outside the yarn surface */
+    const r = coneR(y, tR, bR, hH) + .01 + rng()*.03;
+    v[i*3]   = Math.cos(theta) * r;
+    v[i*3+1] = y;
+    v[i*3+2] = Math.sin(theta) * r;
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(v, 3));
+  grp.add(new THREE.Points(geo, new THREE.PointsMaterial({
+    color:          0xffe060, /* yellow-gold */
+    size:           .03,
+    sizeAttenuation:true,    /* scales with distance */
+    transparent:    true,
+    opacity:        .9
+  })));
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   SECTION 9 — GEOMETRY ACCUMULATION FOR USDZ
+   ════════════════════════════════════════════════════════════════════════════
+
+   During rebuild, some components accumulate their vertices/indices into
+   flat arrays (yV/yI for the yarn, cV/cI_ for the core).
+   These arrays are then serialized into the .usda file during export.
+
+   Convention: vertices are stored as float triplets (X Y Z) in Three.js units
+   (1 unit = 10cm). USDZ uses metersPerUnit=0.1, so units are interpreted
+   correctly as decimeters → a real-scale object.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/*
+  accumTorusUSDZ — accumulates the geometry of a torus (bobbin rim)
+  Parameters match THREE.TorusGeometry.
+  yOff → vertical offset (to place the rim at ±hH).
+*/
+function accumTorusUSDZ(R, r, tubeSeg, radSeg, yOff, vArr, iArr) {
+  const base = vArr.length / 3;
+  for(let j = 0; j <= radSeg; j++) {
+    const phi = j/radSeg * Math.PI*2, cp = Math.cos(phi), sp = Math.sin(phi);
+    for(let i = 0; i <= tubeSeg; i++) {
+      const theta = i/tubeSeg * Math.PI*2, ct = Math.cos(theta), st = Math.sin(theta);
+      vArr.push((R + r*ct)*cp,  r*st + yOff,  (R + r*ct)*sp);
+    }
+  }
+  const cols = tubeSeg + 1;
+  for(let j = 0; j < radSeg; j++) for(let i = 0; i < tubeSeg; i++) {
+    const a = base + j*cols+i, b = base + (j+1)*cols+i,
+          c = base + (j+1)*cols+(i+1), d = base + j*cols+(i+1);
+    iArr.push(a, d, b,  b, d, c); /* two triangles per quad */
+  }
+}
+
+/*
+  accumCylUSDZ — accumulates the geometry of a truncated cylinder (core)
+  Generates only two vertex rings (top and bottom) and the side faces.
+*/
+function accumCylUSDZ(rTop, rBot, halfH, seg, vArr, iArr) {
+  const base = vArr.length / 3;
+  for(let j = 0; j <= 1; j++) {
+    const y = halfH - j*halfH*2, r = j===0 ? rTop : rBot;
+    for(let i = 0; i <= seg; i++) {
+      const theta = i/seg * Math.PI*2;
+      vArr.push(Math.cos(theta)*r, y, Math.sin(theta)*r);
+    }
+  }
+  const cols = seg + 1;
+  for(let i = 0; i < seg; i++) {
+    const a = base+i, b = base+i+1, c = base+cols+i, d = base+cols+i+1;
+    iArr.push(a, c, b,  b, c, d);
+  }
+}
+
+/*
+  accumIndexed — copies vertices and indices from a BufferGeometry into flat buffers
+  Handles both indexed (geo.index != null) and non-indexed geometries.
+*/
+function accumIndexed(geo, vArr, iArr, uvArr) {
+  const pos  = geo.attributes.position.array;
+  const base = vArr.length / 3;
+  for(let i = 0; i < pos.length; i++) vArr.push(pos[i]);
+  if(uvArr && geo.attributes.uv && geo.attributes.uv.array) {
+    const uv = geo.attributes.uv.array;
+    for(let i = 0; i < uv.length; i++) uvArr.push(uv[i]);
+  }
+  if(geo.index) {
+    const ia = geo.index.array;
+    for(let i = 0; i < ia.length; i++) iArr.push(base + ia[i]);
+  } else {
+    /* Non-indexed geometry: each 3 vertices form a triangle */
+    const n = pos.length / 3;
+    for(let i = 0; i < n; i+=3) iArr.push(base+i, base+i+1, base+i+2);
+  }
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   SECTION 10 — ANIMATION LOOP
+   ════════════════════════════════════════════════════════════════════════════
+
+   animate() is called once by init() and self-schedules via requestAnimationFrame
+   (60fps if available, otherwise adaptive).
+
+   On each frame:
+     1. Se non c'è drag, applica il decadimento dell'inerzia (vx/vy *= .90)
+        e incrementa la rotazione con l'eventuale auto-rotate
+     2. Clamp di rotX per impedire il capovolgimento completo
+     3. Interpolazione smooth della camera zoom (cz → tz con fattore .09)
+     4. Aggiorna posizione camera e lookAt
+     5. Applica le rotazioni al bobbinGrp
+     6. Render
+   ════════════════════════════════════════════════════════════════════════════ */
+let _lastFrameTime = performance.now();
+function animate(time) {
+  requestAnimationFrame(animate);
+  const now = (typeof time === 'number') ? time : performance.now();
+  let dt = (now - _lastFrameTime) / (1000 / 60);
+  if(dt > 3) dt = 3;
+  if(dt < 0) dt = 0;
+  _lastFrameTime = now;
+
+  /*
+    Decadimento inerzia: quando il drag termina, la velocità angolare
+    decade esponenzialmente (×0.90 per frame ≈ 1/e ogni ~22 frame).
+    In auto-rotate, a constant speed of .002 rad/frame is added.
+  */
+  if(!isDrag) {
+    vx *= Math.pow(.90, dt);
+    vy *= Math.pow(.90, dt);
+    rotZ *= Math.pow(.90, dt);
+    if(camMode === 'orbit') {
+      rotY += vx + (autoRotate ? .002 * dt : 0);
+      rotX += vy;
+    }
+  }
+
+  /* Clamp rotX to ±π to avoid impossible orientations */
+  rotX = Math.max(-Math.PI, Math.min(Math.PI, rotX));
+
+  /* Linear interpolation towards the target zoom (smooth damping) */
+  cz += (tz - cz) * (1 - Math.pow(.91, dt));
+
+  /* Update camera */
+  camera.position.set(panX, .6 + panY, cz);
+  camera.lookAt(panX, .3 + panY, 0);
+
+  /* Rotate the entire bobbin group */
+  if(bobbinGrp) bobbinGrp.rotation.set(rotX, rotY, rotZ);
+
+  /* Dynamic background: lerp towards the target color (~20 frames at 60fps) */
+  if(_bgCurrent && _bgTarget) {
+    _bgCurrent.lerp(_bgTarget, 1 - Math.pow(.965, dt));
+    renderer.setClearColor(_bgCurrent, 1);
+  }
+
+  renderer.render(scene, camera);
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   SECTION 11 — MOUSE AND TOUCH CONTROLS
+   ════════════════════════════════════════════════════════════════════════════
+
+   Listeners are attached to renderer.domElement (the <canvas>) for mouse events,
+   and to window for mousemove/mouseup (to keep tracking outside the canvas).
+
+   Modes:
+     orbit + left button     → orbital rotation (rotY + rotX)
+     orbit + right button    → Z rotation (roll)
+     pan   + left button     → camera translation (panX + panY)
+     scroll                  → zoom (tz)
+     1-finger touch          → rotate / pan
+     2-finger touch (pinch)  → zoom
+   ════════════════════════════════════════════════════════════════════════════ */
+function setup3DCtrl() {
+  const canvas = renderer.domElement;
+
+  /* ── Mouse down: start drag ── */
+  canvas.addEventListener('mousedown', e => {
+    if(e.button !== 0) {
+      /* Right button → Z rotation */
+      isDrag = true; isRD = true;
+      lmx = e.clientX; lmy = e.clientY;
+      vx = vy = 0;
+      return;
+    }
+    /* Left button → orbit/pan */
+    isDrag = true; isRD = false;
+    lmx = e.clientX; lmy = e.clientY;
+    vx = vy = 0;
+  });
+
+  /* Disable the context menu on the canvas */
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+  /* ── Mouse move: apply transform ── */
+  window.addEventListener('mousemove', e => {
+    if(!isDrag) return;
+    const dx = e.clientX - lmx, dy = e.clientY - lmy;
+    if(isRD) {
+      rotZ += dx * .012; /* right-drag → Z roll */
+    } else if(camMode === 'pan') {
+      panX -= dx * .005; panY += dy * .005; /* left-drag in pan mode */
+    } else {
+      /* left-drag in orbit mode: update angular velocity */
+      vx = dx * .016; vy = dy * .012;
+      rotY += vx; rotX += vy;
+    }
+    lmx = e.clientX; lmy = e.clientY;
+  });
+
+  /* ── Mouse up: end drag ── */
+  window.addEventListener('mouseup', () => isDrag = false);
+
+  /* ── Scroll: zoom ──
+     preventDefault prevents page scrolling.
+     Target zoom tz is clamped to [3, 14]. */
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    tz = Math.max(3, Math.min(14, tz + e.deltaY * .008));
+  }, { passive: false });
+
+  /* ── Touch ── */
+  let tx = 0, ty = 0, pd = 0; /* previous touch position / pinch distance */
+
+  canvas.addEventListener('touchstart', e => {
+    isDrag = true;
+    if(e.touches.length >= 2) e.preventDefault(); /* Prevent native pinch-zoom */
+    if(e.touches.length === 1) {
+      tx = e.touches[0].clientX; ty = e.touches[0].clientY;
+      vx = vy = 0;
+    }
+    if(e.touches.length === 2) {
+      /* Compute initial two-finger distance for pinch */
+      pd = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+    }
+  }, { passive: false }); /* passive:false is required to allow e.preventDefault() */
+
+  canvas.addEventListener('touchmove', e => {
+    e.preventDefault(); /* Prevent scroll and pull-to-refresh on iOS while dragging */
+    if(e.touches.length === 1) {
+      const dx = e.touches[0].clientX - tx, dy = e.touches[0].clientY - ty;
+      if(camMode === 'pan') { panX -= dx*.005; panY += dy*.005; }
+      else { vx = dx*.016; vy = dy*.012; rotY += vx; rotX += vy; }
+      tx = e.touches[0].clientX; ty = e.touches[0].clientY;
+    }
+    if(e.touches.length === 2) {
+      /* Pinch-to-zoom: distance delta from previous frame → tz */
+      const nd = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      tz = Math.max(3, Math.min(14, tz - (nd - pd) * .014));
+      pd = nd;
+    }
+  }, { passive: false }); /* passive:false is required to call e.preventDefault() */
+
+  canvas.addEventListener('touchend', e => {
+    isDrag = !!(e.touches && e.touches.length);
+  });
+  canvas.addEventListener('touchcancel', () => {
+    isDrag = false;
+  });
+}
+
+/* ── Resize: update camera and renderer when the window changes size ── */
+function onResize() {
+  const host = document.getElementById('c3d-canvas-host');
+  if(!renderer || !camera) return;
+  const W = host.offsetWidth, H = host.offsetHeight;
+  if(!W || !H) return;
+  camera.aspect = W / H;
+  camera.updateProjectionMatrix();
+  renderer.setSize(W, H);
+  const dockEl = document.querySelector('.dock');
+  if(dockEl) _updateDockPanOffset(dockEl.offsetHeight);
+}
+/* Resize: update camera and renderer when the window changes size.
+   80ms debounce: avoids repeated calls during desktop resizing. */
+let _resizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(onResize, 80);
+});
+
+/* Toolbar buttons */
+function setMode(m) {
+  camMode = m;
+  document.getElementById('btn-orbit').classList.toggle('on', m === 'orbit');
+  document.getElementById('btn-pan'  ).classList.toggle('on', m === 'pan');
+}
+function fitToView() {
+  /* Reset to the default view — panY uses the dock offset to center
+     the bobbin in the visible area above the palette */
+  tz = 4.2; cz = 4.2; rotX = .12; rotY = .4; rotZ = 0; panX = 0;
+  panY = _dockPanYOffset;
+  vx = 0; vy = 0;
+}
+function toggleAutoRotate() {
+  autoRotate = !autoRotate;
+  document.getElementById('btn-autorot').classList.toggle('on', autoRotate);
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   SECTION 12 — UI CONTROL HANDLERS
+   ════════════════════════════════════════════════════════════════════════════ */
+
+let rebuildTimer = null;
+let rebuildBusy  = false;
+let rebuildPending = false;
+let rebuildLastMsg = null;
+
+/* Panel CSS transition duration (ms) — must match
+   .panel { transition: width .32s … } for the post-animation resize */
+const PANEL_TRANSITION_MS = 340;
+
+/*
+  triggerRebuild(msg)
+  ────────────────────
+  Shows the loader with the provided message, yields a frame to the browser
+  (tick), then rebuilds the bobbin and hides the loader.
+  Async so the loader can paint before heavy computation.
+*/
+async function triggerRebuild(msg) {
+  rebuildLastMsg = msg;
+  clearTimeout(rebuildTimer);
+  rebuildTimer = setTimeout(async () => {
+    if(rebuildBusy) { rebuildPending = true; return; }
+    rebuildBusy = true;
+    try {
+      showLdr(msg);
+      await tick();
+      await buildBobbin();
+    } finally {
+      hideLdr();
+      rebuildBusy = false;
+      if(rebuildPending) {
+        rebuildPending = false;
+        triggerRebuild(rebuildLastMsg || msg);
+      }
+    }
+  }, 160);
+}
+
+/*
+  setType(el, type)
+  ──────────────────
+  Changes the yarn type (smooth/boucle/glitter).
+  Updates the .on class on tgrid buttons.
+  For glitter, forces metalness=0.7 for visual consistency.
+*/
+async function setType(el, t) {
+  document.querySelectorAll('.tbtn').forEach(b => b.classList.remove('on'));
+  el.classList.add('on');
+  S.type = t;
+  /* Lame: automatically set a high metalness */
+  if(t === 'glitter') {
+    S.metalness = .7; setTxt('mv', '70%');
+    const m = document.getElementById('range-metal'); if(m) m.value = 70;
+  } else {
+    S.metalness = 0;  setTxt('mv', '0%');
+    const m = document.getElementById('range-metal'); if(m) m.value = 0;
+  }
+  await triggerRebuild(TR[LANG].lt);
+}
+
+/*
+  setSP(key, val, elId, label)
+  ─────────────────────────────
+  Generic handler for geometric parameters.
+  key   → key in S to update
+  val   → already converted value (e.g. this.value/100 for hScale)
+  elId  → id of the <b> element displaying the current value
+  label → formatted string to display
+*/
+async function setSP(key, val, elId, label) {
+  S[key] = val;
+  setTxt(elId, label);
+  await triggerRebuild(TR[LANG].ls);
+}
+
+/*
+  setMat(key, v)
+  ───────────────
+  Updates roughness or metalness in real time WITHOUT rebuilding.
+  Directly updates materials already in the scene by traversing bobbinGrp.
+  material.needsUpdate = true → Three.js recompiles the shader if needed.
+*/
+function setMat(key, v) {
+  S[key] = parseFloat(v) / 100;
+  setTxt(key === 'roughness' ? 'rv' : 'mv', Math.round(v) + '%');
+  if(bobbinGrp) {
+    bobbinGrp.traverse(o => {
+      if(!o.isMesh) return;
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      mats.forEach(m => {
+        if(m && m.isMeshStandardMaterial) {
+          m[key] = S[key];
+          m.needsUpdate = true;
+        }
+      });
+    });
+  }
+}
+
+/*
+  setRough(v, id)
+  ────────────────
+  Handler for surface presets (matte/semi/shiny).
+  Sets S.roughness, updates the active card, and syncs the fine slider via setMat().
+*/
+function setRough(v, id) {
+  S.roughness = v;
+  document.querySelectorAll('.rp-item').forEach(el => el.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+  setTxt('rv', Math.round(v*100) + '%');
+  const rs = document.getElementById('range-rough'); if(rs) rs.value = Math.round(v*100);
+  setMat('roughness', v*100);
+}
+
+/*
+  setColor(hex) / onPick(v) / onHex(v)
+  ───────────────────────────────────────
+  setColor  → entry point for any color change
+  onPick    → handler for the native color picker (dock and panel)
+  onHex     → handler for the text input; validates before applying
+*/
+function setColor(hex) { S.color = hex; updateCustomUI(hex); triggerRebuild(TR[LANG].lc); }
+let _confirmNextPick = false;
+let _confirmPickValue = null;
+function onPick(v)     {
+  if(_confirmNextPick) {
+    _confirmPickValue = v;
+    updateCustomUI(v);
+    return;
+  }
+  if(_pendingColor) return;
+  setColor(v);
+}
+
+function onPickCommit(v) {
+  if(!_confirmNextPick) return;
+  _confirmNextPick = false;
+  const hex = _confirmPickValue || v;
+  _confirmPickValue = null;
+  showColorConfirm(hex);
+}
+function onHex(v)      {
+  let c = v.startsWith('#') ? v : '#' + v;
+  c = c.replace(/^#([0-9a-f])([0-9a-f])([0-9a-f])$/i, '#$1$1$2$2$3$3');
+  if(/^#[0-9A-Fa-f]{6}$/.test(c)) setColor(c);
+}
+
+/*
+  attivaContagocce()
+  ───────────────────
+  EyeDropper API (Chrome/Edge/Opera — Chromium engine).
+  Opens the system sampler directly, without forcing the user to open the
+  native <input type="color"> menu first.
+
+  #btn-eyedropper is always visible; attivaContagocce() internally chooses
+  between the EyeDropper API and the native color picker fallback.
+*/
+async function attivaContagocce() {
+  if(window.EyeDropper) {
+    /* Chromium browsers: opens full-screen sampler → confirmation modal */
+    const ed = new EyeDropper();
+    try {
+      const result = await ed.open();
+      showColorConfirm(result.sRGBHex);
+    } catch {
+      /* Esc or canceled: no-op */
+    }
+  } else {
+    /* Safari / Firefox / others: opens the OS native color picker.
+       Native pickers include an eyedropper on macOS/iOS Safari. */
+    _confirmNextPick = true;
+    _confirmPickValue = null;
+    const pick = (ids => {
+      for(const id of ids) {
+        const el = document.getElementById(id);
+        if(!el) continue;
+        const cs = getComputedStyle(el);
+        if(cs.display === 'none' || cs.visibility === 'hidden') continue;
+        if(el.disabled) continue;
+        return el;
+      }
+      return null;
+    })(['ccpicker-kids','ccpicker2','ccpicker']);
+    if(pick) {
+      try { pick.focus({ preventScroll: true }); } catch {}
+      if(typeof pick.showPicker === 'function') pick.showPicker();
+      else pick.click();
+    }
+  }
+}
+
+/*
+  updateCustomUI(hex)
+  ────────────────────
+  Syncs all UI elements that display the current color:
+    - cc-prev preview rectangle (background + hex text)
+    - cc-pick square (background)
+    - dock color picker (value)
+    - panel color picker (value)
+    - hex text input
+
+  Perceived luminance (ITU-R BT.709 coefficients) determines whether the preview
+  text should be light or dark.
+*/
+/*
+  updateCanvasBg(hex)
+  ────────────────────
+  Computes the optimal canvas background color for the current bobbin.
+  Logic: ITU-R BT.709 luminance → three ranges:
+    lum < 0.12  → very dark bobbin (black, night blue, burgundy…)
+                  → warm cream background #ede8df
+    lum < 0.28  → dark bobbin (brown, dark green, teal…)
+                  → light blue-gray background #c8d8e8
+    lum ≥ 0.28  → mid/light bobbin → original night-blue background #0d1828
+  Transition is handled by _bgCurrent.lerp(_bgTarget, 0.035) in animate().
+*/
+function updateCanvasBg(hex) {
+  if(!_bgTarget) return;
+  const col = new THREE.Color(hex);
+  const lum = 0.2126 * col.r + 0.7152 * col.g + 0.0722 * col.b;
+  if(lum < 0.12)       _bgTarget.set(0xede8df);   /* warm cream */
+  else if(lum < 0.28)  _bgTarget.set(0xc8d8e8);   /* light blue */
+  else                 _bgTarget.set(0x0d1828);    /* original night blue */
+  /* Also sync the host div for warm-up before the first render */
+  const host = document.getElementById('c3d-canvas-host');
+  if(host) host.style.backgroundColor = '#' + _bgTarget.getHexString();
+}
+
+function updateCustomUI(hex) {
+  const h = hex.startsWith('#') ? hex : '#'+hex;
+  /* Panel preview */
+  const prev = document.getElementById('cc-prev'); if(prev) prev.style.background = h;
+  const pick = document.getElementById('cc-pick'); if(pick) pick.style.background = h;
+  /* Panel pickers */
+  const cp = document.getElementById('ccpicker');  if(cp)  cp.value = h;
+  const cp2= document.getElementById('ccpicker2'); if(cp2) cp2.value = h;
+  /* Hex input */
+  const hx = document.getElementById('cchex'); if(hx) hx.value = h.toUpperCase();
+  /* Preview text: adaptive color for readability */
+  if(prev) {
+    prev.textContent = h.toUpperCase();
+    const col = new THREE.Color(h);
+    const lum = 0.2126*col.r + 0.7152*col.g + 0.0722*col.b; /* ITU luminance */
+    prev.style.color = lum > .55 ? 'rgba(0,0,0,.55)' : 'rgba(255,255,255,.75)';
+  }
+  /* Update dynamic canvas background based on selected color luminance */
+  updateCanvasBg(h);
+  /* Sync the color disc in the kids button */
+  const ks = document.getElementById('kids-color-swatch');
+  if(ks) ks.style.background = h;
+  const kh = document.getElementById('kids-color-hex');
+  if(kh) kh.textContent = h.toUpperCase();
+  const kp = document.getElementById('ccpicker-kids');
+  if(kp) kp.value = h;
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   SECTION 13 — PNG EXPORT
+   ════════════════════════════════════════════════════════════════════════════
+
+   renderOffscreen(width, height)
+   ───────────────────────────────
+   Atomic helper: renders the current bobbinGrp into a WebGLRenderTarget of the
+   requested size and returns a PNG data URL with a transparent background.
+   Uses the main renderer (doesn't create a new one) to avoid exceeding the
+   limit of simultaneous WebGL contexts (~8–16 depending on browser/OS).
+
+   Procedure:
+     1. Create a WebGLRenderTarget with the desired size
+     2. Build an off-screen scene with the same three-point lighting
+     3. Clone bobbinGrp to avoid mutating the live scene
+     4. Render into the target with a transparent background (alpha=0)
+     5. Read raw pixels via readRenderTargetPixels
+     6. Vertical flip (WebGL origin bottom-left → canvas origin top-left)
+     7. Dispose only the RenderTarget — renderer and live scene stay intact
+
+   renderBobbinsGrid(bobSize)
+   ───────────────────────────
+   Composes a grid of bobbins: one for each entry in MYPAL.
+   Each entry has params:{...S} saved at the time of the "heart", so geometry
+   and color are recreated exactly.
+   Layout: max 4 columns, additional rows if MYPAL > 4.
+   Under each bobbin: a cream strip with a colored dot + HEX code.
+
+   downloadPNG()       — right panel button — high resolution (4000px tiles)
+   captureAndShare()   — canvas toolbar button — share resolution (2400px tiles)
+   _shareOrDownload()  — shared helper: Web Share API / download fallback
+   ════════════════════════════════════════════════════════════════════════════ */
+
+function renderOffscreen(width, height) {
+  const rt = new THREE.WebGLRenderTarget(width, height, { colorSpace: THREE.SRGBColorSpace });
+  if(rt.texture) rt.texture.colorSpace = THREE.SRGBColorSpace;
+
+  /* Off-screen scene with the same four-point lighting as the main renderer */
+  const oS = new THREE.Scene();
+  oS.add(new THREE.AmbientLight(0xc8d8e8, .18));
+  const kl = new THREE.DirectionalLight(0xfff4e0, 2.2); kl.position.set(6,12,7);  oS.add(kl);
+  const fl = new THREE.DirectionalLight(0xadc8e8, .28); fl.position.set(-6,4,-2); oS.add(fl);
+  const rl = new THREE.DirectionalLight(0x8ab8d8, 0.20); rl.position.set(0,1,-9); oS.add(rl);
+  oS.add(bobbinGrp.clone(true));
+
+  /* Same camera as the main one: keeps current angle and zoom */
+  const oC = new THREE.PerspectiveCamera(36, width / height, .1, 300);
+  oC.position.set(panX, .6 + panY, cz);
+  oC.lookAt(panX, .3 + panY, 0);
+
+  /* Save clear state and set alpha=0 for a transparent background */
+  const savedCC = new THREE.Color();
+  const savedCA = renderer.getClearAlpha();
+  renderer.getClearColor(savedCC);
+
+  renderer.setRenderTarget(rt);
+  renderer.setClearColor(0x000000, 0);
+  renderer.clear();
+  renderer.render(oS, oC);
+
+  /* Read pixels (non-premultiplied RGBA) */
+  const pixels = new Uint8Array(width * height * 4);
+  renderer.readRenderTargetPixels(rt, 0, 0, width, height, pixels);
+
+  /* Restore the main renderer state */
+  renderer.setRenderTarget(null);
+  renderer.setClearColor(savedCC, savedCA);
+  rt.dispose();
+
+  /* Vertical flip via in-place row copy on a TypedArray */
+  const stride = width * 4;
+  const id     = new ImageData(width, height);
+  for(let y = 0; y < height; y++) {
+    id.data.set(
+      pixels.subarray((height - 1 - y) * stride, (height - y) * stride),
+      y * stride
+    );
+  }
+  const out = document.createElement('canvas');
+  out.width = width; out.height = height;
+  out.getContext('2d').putImageData(id, 0, 0);
+  return out.toDataURL('image/png');
+}
+
+
+/*
+  renderBobbinsGrid(bobSize)
+  ──────────────────────────
+  For each entry in MYPAL:
+    1. apply the params snapshot (color, yarn type, geometry, material)
+    2. rebuild the bobbin in the scene (buildBobbin)
+    3. capture renderOffscreen(bobSize, bobSize)
+  Then restore the original S state and rebuild the previous bobbin.
+
+  Grid layout:
+    COLS = min(n, 4) — up to 4 bobbins per row
+    ROWS = ceil(n / COLS)
+    Each cell = bobSize × bobSize (bobbin) + LBL_H (label strip)
+
+  The label strip for each cell has background #f5f0e8 with:
+    - a colored dot centered under the corresponding bobbin
+    - the HEX code in bold Courier New
+
+  If MYPAL is empty, renders the current bobbin as a single cell.
+*/
+async function renderBobbinsGrid(bobSize) {
+  const entries = MYPAL.length > 0 ? MYPAL : [{ hex: S.color, params: { ...S } }];
+  const n       = entries.length;
+  const COLS    = Math.min(n, 4);
+  const ROWS    = Math.ceil(n / COLS);
+  const ua      = navigator.userAgent || '';
+  const isIOS   = /iPad|iPhone|iPod/.test(ua) || (ua.includes('Mac') && ('ontouchend' in document));
+  const maxSide = isIOS ? 4096 : 8192;
+  const maxByW  = Math.floor(maxSide / COLS);
+  const maxByH  = Math.floor(maxSide / (ROWS * 1.12));
+  const safeBob = Math.max(320, Math.min(bobSize, maxByW, maxByH));
+  bobSize       = safeBob;
+  const LBL_H   = Math.round(bobSize * 0.12);
+  const W       = COLS * bobSize;
+  const H       = ROWS * (bobSize + LBL_H);
+
+  /* Save a snapshot of the current state */
+  const savedS = { ...S };
+
+  /* Render each bobbin — try/finally ensures S is restored even if buildBobbin()
+     throws on an intermediate iteration */
+  const urls = [];
+  try {
+    for(const entry of entries) {
+      Object.assign(S, entry.params);
+      await buildBobbin();
+      /* Center the view: canonical fit (same as fitToView()) */
+      tz = 4.2; cz = 4.2; rotX = .12; rotY = .4; rotZ = 0; panX = 0; panY = 0;
+      urls.push(renderOffscreen(bobSize, bobSize));
+      await tick();
+    }
+  } finally {
+    /* Always restore original state */
+    Object.assign(S, savedS);
+    await buildBobbin();
+    tz = 4.2; cz = 4.2; rotX = .12; rotY = .4; rotZ = 0; panX = 0; panY = _dockPanYOffset;
+  }
+
+  /* Compositing */
+  let out, ctx;
+  try {
+    out = document.createElement('canvas');
+    out.width = W; out.height = H;
+    ctx = out.getContext('2d');
+    if(!ctx) throw new Error('Canvas 2D context unavailable');
+  } catch(e) {
+    const err = new Error('PNG canvas allocation failed');
+    err.cause = e;
+    throw err;
+  }
+
+  /* Draw bobbins and label strips */
+  for(let i = 0; i < n; i++) {
+    const col  = i % COLS;
+    const row  = Math.floor(i / COLS);
+    const tileX = col * bobSize;
+    const tileY = row * (bobSize + LBL_H);
+
+    /* Bobbin (transparent background) */
+    await new Promise(resolve => {
+      const img  = new Image();
+      img.onload = () => { ctx.drawImage(img, tileX, tileY, bobSize, bobSize); resolve(); };
+      img.onerror = () => resolve();
+      img.src = urls[i];
+    });
+
+    /* Label strip: cream background + separator */
+    const stripY = tileY + bobSize;
+    ctx.fillStyle = '#f5f0e8';
+    ctx.fillRect(tileX, stripY, bobSize, LBL_H);
+    ctx.strokeStyle = 'rgba(42,58,80,.12)';
+    ctx.lineWidth = Math.max(1, Math.round(bobSize * 0.001));
+    ctx.beginPath(); ctx.moveTo(tileX, stripY); ctx.lineTo(tileX + bobSize, stripY); ctx.stroke();
+
+    /* Vertical separator between columns (except the last column) */
+    if(col < COLS - 1) {
+      ctx.strokeStyle = 'rgba(42,58,80,.08)';
+      ctx.lineWidth = Math.max(1, Math.round(bobSize * 0.001));
+      ctx.beginPath(); ctx.moveTo(tileX + bobSize, tileY); ctx.lineTo(tileX + bobSize, stripY + LBL_H); ctx.stroke();
+    }
+
+    /* Colored dot centered in the strip */
+    const DOT_R = Math.max(10, Math.round(bobSize * 0.030));
+    const cx    = tileX + bobSize / 2;
+    const cy    = stripY + Math.round(LBL_H * 0.36);
+
+    ctx.beginPath(); ctx.arc(cx, cy, DOT_R, 0, Math.PI * 2);
+    ctx.fillStyle = entries[i].hex; ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,.20)';
+    ctx.lineWidth = Math.max(2, Math.round(bobSize * 0.002));
+    ctx.stroke();
+
+    /* HEX label */
+    const fSize = Math.max(14, Math.round(bobSize * 0.028));
+    ctx.font         = `700 ${fSize}px "Courier New", monospace`;
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle    = '#2a3a50';
+    ctx.fillText(entries[i].hex.toUpperCase(), cx, cy + DOT_R + Math.round(bobSize * 0.010));
+  }
+
+  return out.toDataURL('image/png');
+}
+
+
+/*
+  downloadPNG()
+  ─────────────
+  "Export PNG" button in the right panel.
+  Tile size is dynamic to keep the final canvas within mobile/iOS limits.
+  Shows the loader during rendering.
+*/
+function _exportTileSize(single, multi, many) {
+  const n = (MYPAL && MYPAL.length > 0) ? MYPAL.length : 1;
+  let t = single;
+  if(n > 1) t = multi;
+  if(n > 4) t = many;
+  return t;
+}
+async function downloadPNG() {
+  showLdr(TR[LANG]?.ldr_png ?? 'Generating images…');
+  await tick();
+  try {
+    const filename = MYPAL.length > 0 ? 'waraiguma_palette.png' : 'waraiguma_bobbin.png';
+    const tile     = _exportTileSize(4000, 2000, 1200);
+    const url      = await renderBobbinsGrid(tile);
+    const a        = document.createElement('a');
+    a.download     = filename;
+    a.href         = url;
+    a.click();
+  } catch(e) {
+    const ldrTxt = document.getElementById('ltxt');
+    if(ldrTxt) ldrTxt.textContent = (TR[LANG]?.err_png ?? 'PNG error') + ': ' + (e?.message ?? e);
+    console.error('PNG export error:', e);
+    await new Promise(r => setTimeout(r, 2000));
+  } finally {
+    hideLdr();
+  }
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   CAPTURE + SHARE (canvas button — for kids)
+   ════════════════════════════════════════════════════════════════════════════
+
+   captureAndShare()
+   ──────────────────
+ Same approach as downloadPNG but with smaller tiles (optimal for mobile sharing:
+  Web Share API on iOS 15+ / download fallback), dynamically sized for safety.
+   Same grid of all MYPAL bobbins — or only the current one if MYPAL is empty.
+   ════════════════════════════════════════════════════════════════════════════ */
+async function captureAndShare() {
+  const btn = document.getElementById('canvas-capture-btn');
+  if(!btn || btn.classList.contains('busy')) return;
+  const cv = renderer?.domElement;
+
+  btn.classList.add('busy');
+  btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin .8s linear infinite"></i>';
+  if(cv) cv.style.visibility = 'hidden';
+  showLdr(TR[LANG]?.ldr_png ?? 'Generating images…');
+  await tick();
+
+  try {
+    const filename = MYPAL.length > 0 ? 'waraiguma_palette.png' : 'waraiguma_bobbin.png';
+    const isPal    = MYPAL.length > 0;
+    const title    = TR[LANG]?.[isPal ? 'share_title_palette' : 'share_title_single'] ?? (isPal ? 'Waraiguma palette' : 'Waraiguma bobbin');
+    const text     = TR[LANG]?.[isPal ? 'share_text_palette'  : 'share_text_single' ] ?? '🎨';
+    const tile     = _exportTileSize(2400, 1600, 1000);
+    const url      = await renderBobbinsGrid(tile);
+    await _shareOrDownload(url, filename, title, text);
+  } catch(e) {
+    setTxt('ltxt', (TR[LANG]?.err_png ?? 'PNG error') + ': ' + (e?.message ?? e));
+    console.error('Capture/share PNG error:', e);
+    await new Promise(r => setTimeout(r, 2000));
+  } finally {
+    hideLdr();
+    setTimeout(() => { if(cv) cv.style.visibility = ''; }, 220);
+    btn.classList.remove('busy');
+    btn.innerHTML = _sharePlaneSVG();
+  }
+}
+
+function _sharePlaneSVG() {
+  return '<svg class="share-plane" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 11.5L21 3L13.2 20.5L10.3 13.7L3.5 11.5Z"></path><path class="fold" d="M21 3L10.3 13.7"></path><path class="fold" d="M10.3 13.7L13.2 20.5"></path><path class="fold" d="M3.5 11.5L10.3 13.7"></path></svg>';
+}
+
+
+/* Shared helper: Web Share API → download link fallback */
+async function _shareOrDownload(dataURL, filename, title, text) {
+  if(navigator.share && navigator.canShare) {
+    try {
+      const blob = dataURLtoBlob(dataURL);
+      const file = new File([blob], filename, { type: 'image/png' });
+      if(navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title, text });
+        return;
+      }
+    } catch(err) {
+      if(err.name === 'AbortError') return;
+    }
+  }
+  const a    = document.createElement('a');
+  a.download = filename;
+  a.href     = dataURL;
+  a.click();
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   SECTION 14 — USDZ EXPORT
+   ════════════════════════════════════════════════════════════════════════════
+
+   USDZ is Apple's format for augmented reality on iOS/iPadOS.
+   It is a ZIP archive containing a single .usda file (USD ASCII).
+
+   .usda FORMAT:
+   ─────────────
+   Pixar's USD (Universal Scene Description), text variant.
+   The file describes a hierarchy of 3D primitives (Mesh, Material, Shader).
+   iOS automatically interprets downloaded .usdz files as AR objects.
+
+   GENERATED STRUCTURE:
+   ───────────────────
+   def Xform "Rocchetto"         ← root prim
+     def Mesh "Filato"           ← yarn geometry (from yV/yI)
+     def Mesh "Anima"            ← core geometry (from cV/cI_)
+     def Scope "Looks"           ← materials
+       def Material "FilatoMat"  ← yarn PBR material
+       def Material "AnimaMat"   ← core PBR material
+
+   ZIP PACKAGING:
+   ──────────────────────
+   USDZ requires a specific ZIP with no compression (store only, method=0).
+   The minimal ZIP structure is:
+     [Local File Header] [file data] [Central Directory Header] [EOCD]
+   All fields are little-endian.
+   CRC32 is computed in-browser without external libraries.
+
+   ALIGNMENT NOTE:
+   ───────────────────────
+   Apple requires each file within the ZIP to be aligned to 64 bytes.
+   mLFH() adds an "extra" padding field to guarantee this alignment.
+   ════════════════════════════════════════════════════════════════════════════ */
+function downloadUSDZ() {
+  showLdr(TR[LANG].lc_usdz);
+  setTimeout(async () => {
+    try {
+      const col = new THREE.Color(S.color);
+
+      /*
+        fmt3(arr) — formats a flat array [x0,y0,z0, x1,y1,z1, ...]
+        as a sequence of USD tuples: "(x, y, z), (x, y, z), ..."
+      */
+      const fmt3 = arr => {
+        const r = [];
+        for(let i = 0; i+2 < arr.length; i += 3)
+          r.push(`(${(+arr[i]).toFixed(4)}, ${(+arr[i+1]).toFixed(4)}, ${(+arr[i+2]).toFixed(4)})`);
+        return r.join(', ');
+      };
+
+      const fmt2 = arr => {
+        const r = [];
+        for(let i = 0; i+1 < arr.length; i += 2)
+          r.push(`(${(+arr[i]).toFixed(6)}, ${(+arr[i+1]).toFixed(6)})`);
+        return r.join(', ');
+      };
+
+      /*
+        vc3(n) — generates the faceVertexCounts vector for n triangle indices:
+        each triangle has 3 vertices, so it's an array of "3" of length n/3.
+      */
+      const vc3 = n => { const a = []; for(let i = 0; i < n; i+=3) a.push(3); return a.join(', '); };
+
+      /* USD ASCII template — PBR schema using UsdPreviewSurface */
+      const usda = `#usda 1.0
+(
+    defaultPrim = "Rocchetto"
+    metersPerUnit = 0.1
+    upAxis = "Y"
+    doc = "Waraiguma – ボビン / Bobin Maker · Francesco Perchiazzi · Il Mare Artigiano 2026"
+)
+def Xform "Rocchetto" (kind = "component")
+{
+    def Mesh "Filato" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        int[] faceVertexCounts = [${vc3(yI.length)}]
+        int[] faceVertexIndices = [${yI.join(', ')}]
+        point3f[] points = [${fmt3(yV)}]
+        texCoord2f[] primvars:st = [${fmt2(yUV)}]
+        uniform token primvars:st:interpolation = "vertex"
+        uniform token subdivisionScheme = "none"
+        rel material:binding = </Rocchetto/Looks/FilatoMat>
+    }
+    def Mesh "Anima" (prepend apiSchemas = ["MaterialBindingAPI"])
+    {
+        int[] faceVertexCounts = [${vc3(cI_.length)}]
+        int[] faceVertexIndices = [${cI_.join(', ')}]
+        point3f[] points = [${fmt3(cV)}]
+        uniform token subdivisionScheme = "none"
+        rel material:binding = </Rocchetto/Looks/AnimaMat>
+    }
+    def Scope "Looks"
+    {
+        def Material "FilatoMat"
+        {
+            token outputs:surface.connect = </Rocchetto/Looks/FilatoMat/Sh.outputs:surface>
+            def Shader "PrimvarSt"
+            {
+                uniform token info:id = "UsdPrimvarReader_float2"
+                token inputs:varname = "st"
+                float2 outputs:result
+            }
+            def Shader "DiffuseTex"
+            {
+                uniform token info:id = "UsdUVTexture"
+                asset inputs:file = @yarn_diffuse.png@
+                token inputs:sourceColorSpace = "sRGB"
+                float2 inputs:st.connect = </Rocchetto/Looks/FilatoMat/PrimvarSt.outputs:result>
+                float3 outputs:rgb
+            }
+            def Shader "NormalTex"
+            {
+                uniform token info:id = "UsdUVTexture"
+                asset inputs:file = @yarn_normal.png@
+                token inputs:sourceColorSpace = "raw"
+                float2 inputs:st.connect = </Rocchetto/Looks/FilatoMat/PrimvarSt.outputs:result>
+                float3 outputs:rgb
+            }
+            def Shader "Sh"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                color3f inputs:diffuseColor.connect = </Rocchetto/Looks/FilatoMat/DiffuseTex.outputs:rgb>
+                normal3f inputs:normal.connect = </Rocchetto/Looks/FilatoMat/NormalTex.outputs:rgb>
+                float inputs:roughness = ${S.roughness.toFixed(3)}
+                float inputs:metallic  = ${S.metalness.toFixed(3)}
+                float inputs:opacity   = 1.0
+                int   inputs:useSpecularWorkflow = 0
+                token outputs:surface
+            }
+        }
+        def Material "AnimaMat"
+        {
+            token outputs:surface.connect = </Rocchetto/Looks/AnimaMat/Sh.outputs:surface>
+            def Shader "Sh"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                color3f inputs:diffuseColor = (0.788, 0.659, 0.424)
+                float inputs:roughness = 0.820
+                float inputs:metallic  = 0.020
+                float inputs:opacity   = 1.0
+                token outputs:surface
+            }
+        }
+    }
+}`;
+
+      const ub = new TextEncoder().encode(usda);
+
+      const makePngBytes = async (w, h, draw) => {
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        const ctx = c.getContext('2d', { willReadFrequently: true });
+        draw(ctx, w, h);
+        const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+        if(blob) return new Uint8Array(await blob.arrayBuffer());
+        const url = c.toDataURL('image/png');
+        const b64 = url.slice(url.indexOf(',') + 1);
+        const bin = atob(b64);
+        const out = new Uint8Array(bin.length);
+        for(let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+        return out;
+      };
+
+      const makeYarnDiffuse = async () => {
+        const base = new THREE.Color(S.color);
+        const rng = prng(101);
+        const gold = { r: 255, g: 224, b: 96 };
+        return makePngBytes(256, 256, (ctx, w, h) => {
+          const id = ctx.createImageData(w, h);
+          for(let y = 0; y < h; y++) for(let x = 0; x < w; x++) {
+            const i = (y*w + x) * 4;
+            const n = (rng() - .5);
+            const k = S.type === 'boucle' ? (1 + n * .18) : S.type === 'glitter' ? (1 + n * .08) : (1 + n * .10);
+            id.data[i]   = Math.max(0, Math.min(255, Math.round(base.r * 255 * k)));
+            id.data[i+1] = Math.max(0, Math.min(255, Math.round(base.g * 255 * k)));
+            id.data[i+2] = Math.max(0, Math.min(255, Math.round(base.b * 255 * k)));
+            id.data[i+3] = 255;
+          }
+          ctx.putImageData(id, 0, 0);
+          if(S.type === 'boucle') {
+            ctx.globalAlpha = .30;
+            for(let i = 0; i < 160; i++) {
+              const x0 = rng()*w, y0 = rng()*h;
+              const dx = (rng()-.5) * 26;
+              const dy = (rng()-.5) * 10;
+              const kk = .85 + rng()*.35;
+              ctx.strokeStyle = `rgb(${Math.round(base.r*255*kk)},${Math.round(base.g*255*kk)},${Math.round(base.b*255*kk)})`;
+              ctx.lineWidth = 1 + rng()*2;
+              ctx.beginPath();
+              ctx.moveTo(x0, y0);
+              ctx.lineTo(x0+dx, y0+dy);
+              ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
+          }
+          if(S.type === 'glitter') {
+            for(let i = 0; i < 520; i++) {
+              const x = rng()*w, y = rng()*h;
+              const r = .4 + rng()*1.8;
+              const a = .20 + rng()*.55;
+              const c = (rng() < .65) ? gold : { r: 255, g: 248, b: 235 };
+              ctx.fillStyle = `rgba(${c.r},${c.g},${c.b},${a})`;
+              ctx.beginPath();
+              ctx.arc(x, y, r, 0, Math.PI*2);
+              ctx.fill();
+            }
+          }
+        });
+      };
+
+      const makeYarnNormal = async () => {
+        const rng = prng(202);
+        const N = 256;
+        const h = new Float32Array(N * N);
+        const amp = S.type === 'boucle' ? 1.35 : S.type === 'glitter' ? .40 : .75;
+        for(let i = 0; i < h.length; i++) h[i] = (rng() - .5) * amp;
+        for(let pass = 0; pass < 2; pass++) {
+          const t = new Float32Array(N * N);
+          for(let y = 0; y < N; y++) for(let x = 0; x < N; x++) {
+            let s = 0, c = 0;
+            for(let oy = -1; oy <= 1; oy++) for(let ox = -1; ox <= 1; ox++) {
+              const xx = (x + ox + N) % N;
+              const yy = (y + oy + N) % N;
+              s += h[yy*N + xx];
+              c++;
+            }
+            t[y*N + x] = s / c;
+          }
+          h.set(t);
+        }
+        return makePngBytes(N, N, (ctx, w, hh) => {
+          const id = ctx.createImageData(w, hh);
+          const s = S.type === 'boucle' ? 2.2 : S.type === 'glitter' ? 1.0 : 1.5;
+          for(let y = 0; y < hh; y++) for(let x = 0; x < w; x++) {
+            const xm = (x - 1 + w) % w, xp = (x + 1) % w;
+            const ym = (y - 1 + hh) % hh, yp = (y + 1) % hh;
+            const dx = (h[y*w + xm] - h[y*w + xp]) * s;
+            const dy = (h[ym*w + x] - h[yp*w + x]) * s;
+            let nx = dx, ny = dy, nz = 1.0;
+            const inv = 1 / Math.hypot(nx, ny, nz);
+            nx *= inv; ny *= inv; nz *= inv;
+            const i = (y*w + x) * 4;
+            id.data[i]   = Math.round((nx * .5 + .5) * 255);
+            id.data[i+1] = Math.round((ny * .5 + .5) * 255);
+            id.data[i+2] = Math.round((nz * .5 + .5) * 255);
+            id.data[i+3] = 255;
+          }
+          ctx.putImageData(id, 0, 0);
+        });
+      };
+
+      const files = [
+        { name: 'rocchetto.usda', data: ub },
+        { name: 'yarn_diffuse.png', data: await makeYarnDiffuse() },
+        { name: 'yarn_normal.png', data: await makeYarnNormal() }
+      ];
+
+      const buildZip = list => {
+        const enc = new TextEncoder();
+        const entries = list.map(f => {
+          const nb = enc.encode(f.name);
+          const data = f.data;
+          const crc = crc32fn(data);
+          return { nb, data, crc, sz: data.length, off: 0, lfh: null, cdh: null };
+        });
+        let localSize = 0;
+        for(const e of entries) {
+          e.off = localSize;
+          e.lfh = mLFH(e.nb, e.crc, e.sz, e.off);
+          localSize += e.lfh.length + e.sz;
+        }
+        let cdSize = 0;
+        for(const e of entries) {
+          e.cdh = mCDH(e.nb, e.crc, e.sz, e.off);
+          cdSize += e.cdh.length;
+        }
+        const eocd = mEOCD(entries.length, cdSize, localSize);
+        const buf = new Uint8Array(localSize + cdSize + eocd.length);
+        let p = 0;
+        for(const e of entries) {
+          buf.set(e.lfh, p); p += e.lfh.length;
+          buf.set(e.data, p); p += e.sz;
+        }
+        for(const e of entries) { buf.set(e.cdh, p); p += e.cdh.length; }
+        buf.set(eocd, p);
+        return buf;
+      };
+
+      const buf = buildZip(files);
+
+      const blob = new Blob([buf.buffer], { type: 'model/vnd.usdz+zip' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = 'waraiguma_bobbin.usdz';
+      a.rel      = 'ar'; /* iOS Safari: opens AR Quick Look directly */
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      /* Revoke the URL after 10 seconds to free memory */
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+
+    } catch(e) {
+      /* Show the error inline in the loader instead of a non-localized alert() */
+      const ldrTxt = document.getElementById('ltxt');
+      if(ldrTxt) ldrTxt.textContent = (TR[LANG]?.err_usdz ?? 'Errore USDZ') + ': ' + (e?.message ?? e);
+      console.error('USDZ export error:', e);
+      /* Keep the loader visible for 2 seconds, then close it */
+      await new Promise(r => setTimeout(r, 2000));
+    }
+    hideLdr();
+  }, 20); /* small delay to allow the loader to become visible */
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   SECTION 15 — ZIP / CRC32 UTILITIES
+   ════════════════════════════════════════════════════════════════════════════
+
+   Minimal ZIP structure implementation needed for USDZ.
+   All functions return Uint8Array.
+   Multi-byte numbers are little-endian (ZIP convention).
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* Little-endian helpers: uint16 and uint32 as byte arrays */
+function u16(n) { return [n & 0xff, (n>>8) & 0xff]; }
+function u32(n) { return [n & 0xff, (n>>8) & 0xff, (n>>16) & 0xff, (n>>24) & 0xff]; }
+
+/*
+  mLFH(nb, c, sz) — Local File Header (signature 0x04034b50)
+  ────────────────────────────────────────────────────────────
+  nb  → file name as Uint8Array
+  c   → CRC32
+  sz  → file size (compressed = uncompressed because method=0)
+
+  The "extra" field is filled with zeros to align file data to the next
+  64-byte boundary (USDZ alignment requirement).
+*/
+function mLFH(nb, c, sz, off = 0) {
+  const fixed = 30;                         /* fixed header size */
+  const raw   = off + fixed + nb.length;    /* data offset without padding */
+  const ex    = (64 - (raw % 64)) % 64;    /* padding for 64B alignment */
+  const extra = new Uint8Array(ex);         /* zero padding */
+  return new Uint8Array([
+    0x50, 0x4b, 0x03, 0x04, /* signature PK\x03\x04 */
+    20, 0,                   /* version needed: 2.0 */
+    0, 0,                    /* general purpose bit flag */
+    0, 0,                    /* compression method: 0 = store */
+    0, 0, 0, 0,              /* last mod file time/date */
+    ...u32(c),               /* CRC-32 */
+    ...u32(sz),              /* compressed size */
+    ...u32(sz),              /* uncompressed size */
+    ...u16(nb.length),       /* file name length */
+    ...u16(ex),              /* extra field length */
+    ...nb,                   /* file name bytes */
+    ...extra                 /* padding */
+  ]);
+}
+
+/*
+  mCDH(nb, c, sz, off) — Central Directory Header (signature 0x02014b50)
+  ─────────────────────────────────────────────────────────────────────────
+  off → offset of the corresponding Local File Header from the start of the file
+*/
+function mCDH(nb, c, sz, off) {
+  return new Uint8Array([
+    0x50, 0x4b, 0x01, 0x02, /* signature PK\x01\x02 */
+    20, 0,                   /* version made by: 2.0 */
+    20, 0,                   /* version needed: 2.0 */
+    0, 0,                    /* general purpose bit flag */
+    0, 0,                    /* compression method: store */
+    0, 0, 0, 0,              /* last mod */
+    ...u32(c),               /* CRC-32 */
+    ...u32(sz),              /* compressed size */
+    ...u32(sz),              /* uncompressed size */
+    ...u16(nb.length),       /* file name length */
+    0, 0,                    /* extra field length */
+    0, 0,                    /* file comment length */
+    0, 0,                    /* disk number start */
+    0, 0,                    /* internal attributes */
+    0, 0, 0, 0,              /* external attributes */
+    ...u32(off),             /* relative offset of local header */
+    ...nb                    /* file name */
+  ]);
+}
+
+/*
+  mEOCD(n, cs, co) — End of Central Directory Record (signature 0x06054b50)
+  ──────────────────────────────────────────────────────────────────────────
+  n  → number of files in the archive (always 1 for USDZ)
+  cs → Central Directory size
+  co → Central Directory offset from the start of the file
+*/
+function mEOCD(n, cs, co) {
+  return new Uint8Array([
+    0x50, 0x4b, 0x05, 0x06, /* signature PK\x05\x06 */
+    0, 0,                    /* disk number */
+    0, 0,                    /* disk with central directory */
+    ...u16(n),               /* entries on this disk */
+    ...u16(n),               /* total entries */
+    ...u32(cs),              /* size of central directory */
+    ...u32(co),              /* offset of central directory */
+    0, 0                     /* comment length */
+  ]);
+}
+
+/* Build the lookup table (256 entries) once globally */
+const crc32Table = new Uint32Array(256);
+for(let i = 0; i < 256; i++) {
+  let c = i;
+  for(let j = 0; j < 8; j++) c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
+  crc32Table[i] = c;
+}
+
+/*
+  crc32fn(data) — CRC-32 con polinomio IEEE 802.3
+  ──────────────────────────────────────────────────
+  Standard implementation with a precomputed lookup table.
+  Reflected polynomial: 0xEDB88320 (bit-reverse of 0x04C11DB7).
+  Used by ZIP to verify data integrity.
+*/
+function crc32fn(data) {
+  /* Compute CRC */
+  let c = 0xffffffff;
+  for(let i = 0; i < data.length; i++) c = crc32Table[(c ^ data[i]) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   SECTION 16 — FOOTER
+   ════════════════════════════════════════════════════════════════════════════ */
+
+let aboutOpen = false;
+
+/*
+  toggleAbout() — shows/hides the footer info panel
+  The button label toggles between ft_about_lbl and ft_about_close.
+*/
+function toggleAbout() {
+  aboutOpen = !aboutOpen;
+  document.getElementById('ft-about-panel').style.display = aboutOpen ? 'block' : 'none';
+  const lbl = document.getElementById('ft-about-lbl');
+  if(lbl) lbl.textContent = TR[LANG][aboutOpen ? 'ft_about_close' : 'ft_about_lbl'];
+}
+
+/*
+  initFooter() — fills footer texts using the current language
+  Called by init() and setLang() because it uses innerHTML (not data-t).
+*/
+function initFooter() {
+  const ev  = document.getElementById('ft-event');       if(ev)   ev.textContent   = TR[LANG].ft_event;
+  const lbl = document.getElementById('ft-about-lbl');   if(lbl)  lbl.textContent  = TR[LANG].ft_about_lbl;
+  const abs = document.getElementById('ft-abstract');    if(abs)  abs.textContent  = TR[LANG].ft_abstract;
+  const sty = document.getElementById('ft-story');       if(sty)  sty.textContent  = TR[LANG].ft_story;
+  const exp = document.getElementById('ft-experimental');if(exp)  exp.textContent  = TR[LANG].ft_experimental;
+  const crd = document.getElementById('ft-credits');     if(crd)  crd.innerHTML    = TR[LANG].ft_credits;
+  /* Update Hokusai tooltip */
+  const hkBtn = document.getElementById('hokusai-canvas-btn');
+  if(hkBtn) hkBtn.setAttribute('data-tip', TR[LANG].hk_tip);
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   SECTION 17 — HOKUSAI COLOR PICKER
+   ════════════════════════════════════════════════════════════════════════════
+
+   The Wave image is shown as an overlay above the Three.js canvas via
+   toggleHokusaiOverlay(). The flow is purely visual:
+     1. The child gets inspired by the Wave
+     2. Uses "Pick colour" to sample a tone directly in the overlay
+
+   openHokusaiPicker / closeHokusaiPicker are kept as aliases for backward
+   compatibility with any external calls.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* Fix N-2: dedicated function to handle image errors with localization */
+function onHokusaiImgError() {
+  const img = document.getElementById('hk-overlay-img');
+  if(img && img.dataset && !img.dataset.fallbackTried) {
+    img.dataset.fallbackTried = '1';
+    img.src = 'https://upload.wikimedia.org/wikipedia/commons/0/0a/The_Great_Wave_off_Kanagawa.jpg';
+    return;
+  }
+  const el = document.getElementById('hk-error');
+  if(!el) return;   /* guard: element missing in unexpected contexts */
+  el.style.display = 'block';
+  el.textContent = TR[LANG]?.hk_img_error ?? 'Errore: immagine non trovata.';
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   HOKUSAI — CANVAS OVERLAY
+   ════════════════════════════════════════════════════════════════════════════
+
+   The Hokusai button shows/hides the Wave image directly in the 3D column,
+   above the Three.js canvas.
+   The top banner suggests using "Pick colour" to sample a tone.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+function toggleHokusaiOverlay() {
+  const ov  = document.getElementById('hk-canvas-overlay');
+  const btn = document.getElementById('hokusai-canvas-btn');
+  if(!ov) return;
+  const isOpen = ov.classList.contains('open');
+  if(isOpen) {
+    closeHokusaiOverlay();
+  } else {
+    ov.classList.add('open');
+    if(btn) btn.classList.add('hk-open');
+  }
+}
+
+function closeHokusaiOverlay() {
+  const ov  = document.getElementById('hk-canvas-overlay');
+  const btn = document.getElementById('hokusai-canvas-btn');
+  if(ov)  ov.classList.remove('open');
+  if(btn) btn.classList.remove('hk-open');
+}
+
+/* Stub for compatibility with any residual calls */
+function openHokusaiPicker()  { toggleHokusaiOverlay(); }
+function closeHokusaiPicker() { closeHokusaiOverlay(); }
+function hkApplyColor(hex)    { setColor(hex); }
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   KIDS / PRO MODE TOGGLE
+   ════════════════════════════════════════════════════════════════════════════
+   setMode_UI('bambini') → hides the right panel (full-canvas for kids)
+   setMode_UI('pro')     → shows the right panel (all controls visible)
+   The CSS transition (.panel { transition: width .32s ... }) handles the animation.
+   ════════════════════════════════════════════════════════════════════════════ */
+function setMode_UI(mode) {
+  const panel  = document.querySelector('.panel');
+  const btnKid = document.getElementById('mtbtn-bambini');
+  const btnPro = document.getElementById('mtbtn-pro');
+  if(!panel || !btnKid || !btnPro) return;
+
+  const isPro = (mode === 'pro');
+  panel.classList.toggle('pro-hidden', !isPro);
+
+  btnKid.classList.toggle('on', !isPro);
+  btnKid.setAttribute('aria-pressed', String(!isPro));
+  btnPro.classList.toggle('on',  isPro);
+  btnPro.setAttribute('aria-pressed', String(isPro));
+
+  /* After the transition, force a renderer resize */
+  setTimeout(onResize, PANEL_TRANSITION_MS);
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   KIDS COLOR BUTTON
+   ════════════════════════════════════════════════════════════════════════════
+   kidsPickColor(event): intercepts clicks on #kids-color-btn.
+   If EyeDropper API is available → stops bubbling to input[type=color] and opens
+   the full-screen sampler (with confirmation modal).
+   Otherwise → lets the click reach the overlaid input[type=color], which opens
+   the OS native color picker (integrated eyedropper on Safari/iOS).
+   ════════════════════════════════════════════════════════════════════════════ */
+function kidsPickColor(event) {
+  if(window.EyeDropper) {
+    /* Stop clicks on input[type=color] to avoid double picker */
+    event.preventDefault();
+    event.stopPropagation();
+    attivaContagocce(); /* opens EyeDropper → showColorConfirm */
+  }
+  /* Otherwise: let the input open, but keep the same confirm flow */
+  else {
+    _confirmNextPick = true;
+  }
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   COLOR CONFIRMATION MODAL
+   ════════════════════════════════════════════════════════════════════════════
+   showColorConfirm(hex)  → opens the modal with the sampled color preview
+   applyPickedColor()     → applies the color to the bobbin and closes
+   cancelPickedColor()    → closes without changes
+   ════════════════════════════════════════════════════════════════════════════ */
+let _pendingColor = null;
+
+function showColorConfirm(hex) {
+  _pendingColor = hex;
+  const modal  = document.getElementById('color-confirm-modal');
+  const swatch = document.getElementById('ccm-swatch');
+  const hexLbl = document.getElementById('ccm-hex');
+  if(!modal || !swatch || !hexLbl) return;
+
+  swatch.style.background = hex;
+
+  /* Colored shadow for visual coherence with the background */
+  swatch.style.boxShadow = `0 6px 24px ${hex}88, 0 0 0 4px rgba(255,255,255,.12)`;
+  hexLbl.textContent = hex.toUpperCase();
+
+  modal.classList.add('open');
+  /* Focus the Apply button for keyboard accessibility */
+  modal.querySelector('.ccm-apply')?.focus();
+}
+
+function applyPickedColor() {
+  if(_pendingColor) {
+    setColor(_pendingColor);
+    closeHokusaiOverlay();
+  }
+  _closeColorConfirm();
+}
+
+function cancelPickedColor() {
+  _closeColorConfirm();
+}
+
+function _closeColorConfirm() {
+  document.getElementById('color-confirm-modal')?.classList.remove('open');
+  _pendingColor = null;
+}
+
+/* ── Keyboard global handler (single consolidated listener) ────────────────
+   Escape: closes both the color confirmation modal AND the Hokusai overlay.
+   Consolidated from two separate listeners to avoid double execution.      */
+document.addEventListener('keydown', e => {
+  if(e.key !== 'Escape') return;
+  _closeColorConfirm();
+  closeHokusaiOverlay();
+});
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   STARTUP — single DOMContentLoaded
+   ════════════════════════════════════════════════════════════════════════════
+   All listeners and DOM-dependent initialization are consolidated here to
+   clarify initialization order and avoid fragmentation.                   */
+let _threeLoading = null;
+function ensureThree() {
+  if(window.THREE) return Promise.resolve(true);
+  if(_threeLoading) return _threeLoading;
+  _threeLoading = new Promise(resolve => {
+    showLdr(TR[LANG]?.ldr_three ?? 'Loading graphics…');
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/three@0.155.0/build/three.min.js';
+    s.onload = () => resolve(true);
+    s.onerror = () => resolve(false);
+    document.head.appendChild(s);
+  }).then(ok => {
+    if(!ok) setTxt('ltxt', TR[LANG]?.err_three ?? 'Unable to load graphics library.');
+    return ok;
+  });
+  return _threeLoading;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  setLang(LANG);
+  ['ccpicker', 'ccpicker2', 'ccpicker-kids'].forEach(id => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.addEventListener('change', () => onPickCommit(el.value), true);
+    el.addEventListener('blur', () => {
+      if(_confirmNextPick && !_pendingColor) { _confirmNextPick = false; _confirmPickValue = null; }
+    }, true);
+  });
+
+  /* Close Hokusai overlay by clicking only the backdrop (not its children) */
+  document.getElementById('hk-canvas-overlay')?.addEventListener('click', e => {
+    if(e.target === e.currentTarget) closeHokusaiOverlay();
+  });
+
+  /* Set the kids palette as active in the dock */
+  setPalMode('kids');
+
+  /* Auto-rotate button: reflects the default state (true) */
+  document.getElementById('btn-autorot')?.classList.add('on');
+
+  /* #btn-eyedropper is always visible (CSS: display:flex).
+     No conditional logic needed here: attivaContagocce() handles the
+     EyeDropper API branch vs. the native fallback internally.             */
+  ensureThree().then(ok => { if(ok) init(); });
+});
+</script>
+</body>
+</html>
