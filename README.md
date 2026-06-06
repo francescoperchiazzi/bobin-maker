@@ -80,6 +80,22 @@ The software does not attempt to teach design. Instead, it creates conditions fo
 - PNG export (single bobbin or saved palette grid)
 - USDZ export for AR on iPhone/iPad (with embedded procedural textures)
 
+## Screenshots
+
+| | |
+|---|---|
+| ![Main view](./screenshots/waraiguma_main.png) | ![Palette creation](./screenshots/waraiguma_palette_creation.png) |
+| ![Color picking](./screenshots/waraiguma_color_picking.png) | ![Pro view](./screenshots/waraiguma_pro_view.png) |
+
+## Video
+
+- XR demo (iPhone): [waraiguma_xr_demo_iphone_15_pro.mp4](./video/waraiguma_xr_demo_iphone_15_pro.mp4)
+
+## Example Exports
+
+- Example palette PNG: [waraiguma_palette.png](./examples/waraiguma_palette.png)
+- Example USDZ: [waraiguma_bobbin.usdz](./examples/waraiguma_bobbin.usdz)
+
 ## Run Locally
 
 This app is a static web page with no build step.
@@ -99,6 +115,9 @@ Then open `http://localhost:8080/`.
 - [vendor/tabler-icons-webfont/](./vendor/tabler-icons-webfont/): local Tabler Icons webfont (CSS + fonts, MIT)
 - [fonts/](./fonts/): local Poppins subset for offline setups (OFL)
 - [img/The_Great_Wave_off_Kanagawa.jpg](./img/The_Great_Wave_off_Kanagawa.jpg): Wave image local asset
+- [screenshots/](./screenshots/): README images
+- [video/](./video/): demo video(s)
+- [examples/](./examples/): example export files (PNG / USDZ)
 
 ## Credits & Thanks
 
