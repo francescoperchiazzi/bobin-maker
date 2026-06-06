@@ -2178,6 +2178,12 @@ let camera;       /* THREE.PerspectiveCamera — viewpoint */
 let bobbinGrp;    /* THREE.Group — contains all bobbin geometry */
 let sharedNormalMap = null; /* Global normal map to avoid unnecessary creation/disposal */
 
+let _resizeQueued = false;
+let _resizeW = 0;
+let _resizeH = 0;
+let _resizeAppliedW = 0;
+let _resizeAppliedH = 0;
+
 /* Orbit camera state */
 let camMode   = 'orbit'; /* 'orbit' | 'pan' */
 let rotY      = .4;      /* current Y rotation (radians) */
@@ -2306,6 +2312,8 @@ async function init() {
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(W, H);
+  _resizeAppliedW = W;
+  _resizeAppliedH = H;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
   renderer.outputColorSpace  = THREE.SRGBColorSpace;
@@ -2360,6 +2368,7 @@ async function init() {
   initFooter();
   setHdrH();    /* measure and set --hdr-h */
   setDockH();   /* measure and set --dock-h (for #kids-color-btn) */
+  watchCanvasHost();
   animate();    /* render loop */
   setMode_UI('bambini'); /* default mode: right panel hidden */
 }
@@ -2399,6 +2408,26 @@ function setDockH() {
   };
   apply();
   new ResizeObserver(apply).observe(dockEl);
+}
+
+function watchCanvasHost() {
+  const host = document.getElementById('c3d-canvas-host');
+  if(!host) return;
+  let raf = null;
+  let lastW = 0, lastH = 0;
+  new ResizeObserver(entries => {
+    const cr = entries && entries[0] && entries[0].contentRect;
+    const W = cr ? Math.round(cr.width) : 0;
+    const H = cr ? Math.round(cr.height) : 0;
+    if(W < 64 || H < 64) return;
+    if(W === lastW && H === lastH) return;
+    lastW = W; lastH = H;
+    if(raf) cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(() => {
+      raf = null;
+      onResize(W, H);
+    });
+  }).observe(host);
 }
 
 /*
@@ -2964,6 +2993,8 @@ function animate(time) {
   /* Linear interpolation towards the target zoom (smooth damping) */
   cz += (tz - cz) * (1 - Math.pow(.91, dt));
 
+  flushResize();
+
   /* Update camera */
   camera.position.set(panX, .6 + panY, cz);
   camera.lookAt(panX, .3 + panY, 0);
@@ -3091,14 +3122,30 @@ function setup3DCtrl() {
 }
 
 /* ── Resize: update camera and renderer when the window changes size ── */
-function onResize() {
+function onResize(forceW, forceH) {
   const host = document.getElementById('c3d-canvas-host');
   if(!renderer || !camera) return;
-  const W = host.offsetWidth, H = host.offsetHeight;
-  if(!W || !H) return;
+  const rect = host.getBoundingClientRect();
+  const W = Math.round((typeof forceW === 'number') ? forceW : rect.width);
+  const H = Math.round((typeof forceH === 'number') ? forceH : rect.height);
+  if(W < 2 || H < 2) return;
+  _resizeW = W;
+  _resizeH = H;
+  _resizeQueued = true;
+}
+
+function flushResize() {
+  if(!_resizeQueued || !renderer || !camera) return;
+  const W = _resizeW;
+  const H = _resizeH;
+  if(W < 2 || H < 2) { _resizeQueued = false; return; }
+  if(W === _resizeAppliedW && H === _resizeAppliedH) { _resizeQueued = false; return; }
+  _resizeQueued = false;
+  _resizeAppliedW = W;
+  _resizeAppliedH = H;
   camera.aspect = W / H;
   camera.updateProjectionMatrix();
-  renderer.setSize(W, H);
+  renderer.setSize(W, H, false);
   const dockEl = document.querySelector('.dock');
   if(dockEl) _updateDockPanOffset(dockEl.offsetHeight);
 }

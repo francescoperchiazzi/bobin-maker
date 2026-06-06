@@ -47,3 +47,4 @@ This document lists the main files, embedded dependencies, external assets, and 
 
 - License: see `LICENSE` and `NOTICE.md`.
 - Consider pinning the external CDN versions and documenting any offline limitations.
+- Layout/responsive: the app uses `ResizeObserver` (header, dock, and canvas host) to keep CSS vars and the WebGL renderer in sync during responsive reflow and panel transitions.
