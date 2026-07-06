@@ -4,6 +4,18 @@
   <meta charset="utf-8">
   <title>Waraiguma · Bobin Maker — Il Mare Artigiano</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <link rel="icon" href="./img/The_Great_Wave_off_Kanagawa.jpg" type="image/jpeg">
+  <link rel="apple-touch-icon" href="./img/The_Great_Wave_off_Kanagawa.jpg">
+  <meta property="og:image" content="./img/The_Great_Wave_off_Kanagawa.jpg" id="og-image">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="./img/The_Great_Wave_off_Kanagawa.jpg" id="twitter-image">
+  <script>
+    (() => {
+      const abs = new URL('./img/The_Great_Wave_off_Kanagawa.jpg', location.href).href;
+      document.getElementById('og-image')?.setAttribute('content', abs);
+      document.getElementById('twitter-image')?.setAttribute('content', abs);
+    })();
+  </script>
 
   <link rel="stylesheet" href="vendor/tabler-icons-webfont/tabler-icons.min.css">
 
@@ -371,71 +383,93 @@
     .ccm-card {
       background: var(--cr);
       border: 1.5px solid var(--br);
-      border-radius: 16px;
-      padding: calc(var(--u)*1.4) calc(var(--u)*1.6);
+      border-radius: 22px;
+      padding: calc(var(--u)*1.8) calc(var(--u)*2.1);
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: calc(var(--u)*.85);
-      min-width: calc(var(--u)*14);
-      max-width: calc(var(--u)*20);
+      gap: calc(var(--u)*1.0);
+      width: min(92vw, calc(var(--u)*24));
       box-shadow: 0 16px 48px rgba(0,0,0,.55);
     }
     .ccm-swatch {
-      width: calc(var(--u)*7);
-      height: calc(var(--u)*7);
+      width: calc(var(--u)*8.2);
+      height: calc(var(--u)*8.2);
       border-radius: 50%;
-      border: 4px solid rgba(255,255,255,.15);
+      border: 5px solid rgba(255,255,255,.15);
       box-shadow: 0 4px 20px rgba(0,0,0,.45);
       transition: background .15s;
     }
     .ccm-label {
-      font-size: calc(var(--u)*.72);
+      font-size: calc(var(--u)*.82);
       color: var(--txt-secondary);
-      font-weight: 600;
-      letter-spacing: .05em;
+      font-weight: 700;
+      letter-spacing: .04em;
       text-align: center;
     }
     .ccm-hex {
-      font-size: calc(var(--u)*1.05);
+      font-size: calc(var(--u)*1.18);
       font-weight: 800;
       color: var(--txt-primary);
-      letter-spacing: .12em;
+      letter-spacing: .14em;
       font-family: 'Courier New', monospace;
     }
     .ccm-actions {
       display: flex;
-      gap: calc(var(--u)*.6);
+      gap: calc(var(--u)*.75);
       width: 100%;
     }
     .ccm-apply {
       flex: 1;
-      padding: calc(var(--u)*.55) calc(var(--u)*.8);
-      border-radius: 8px;
+      padding: calc(var(--u)*.7) calc(var(--u)*.95);
+      min-height: calc(var(--u)*2.5);
+      border-radius: 14px;
       border: none;
       background: var(--bp);
       color: #fff;
       font-family: 'Poppins', sans-serif;
-      font-size: calc(var(--u)*.82);
+      font-size: calc(var(--u)*.88);
       font-weight: 700;
       cursor: pointer;
       transition: background .12s, transform .1s;
       letter-spacing: .01em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: calc(var(--u)*.45);
     }
     .ccm-apply:hover { background: var(--bn); transform: translateY(-1px); }
     .ccm-cancel {
-      padding: calc(var(--u)*.55) calc(var(--u)*.8);
-      border-radius: 8px;
+      padding: calc(var(--u)*.7) calc(var(--u)*.9);
+      min-height: calc(var(--u)*2.5);
+      border-radius: 14px;
       border: 1.5px solid var(--br);
       background: var(--bo);
       color: var(--txt-secondary);
       font-family: 'Poppins', sans-serif;
-      font-size: calc(var(--u)*.82);
+      font-size: calc(var(--u)*.88);
       font-weight: 600;
       cursor: pointer;
       transition: border-color .12s, background .12s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: calc(var(--u)*.5);
     }
     .ccm-cancel:hover { border-color: var(--bp); background: rgba(138,184,216,.08); }
+    .ccm-apply i { font-size: calc(var(--u)*1.05); line-height: 1; }
+    .ccm-xcirc {
+      width:  calc(var(--u)*1.65);
+      height: calc(var(--u)*1.65);
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid rgba(15,30,54,.22);
+      background: rgba(255,255,255,.28);
+      flex-shrink: 0;
+    }
+    .ccm-xcirc i { font-size: calc(var(--u)*1.05); line-height: 1; }
 
     /* ══════════════════════════════════════════════════════════════
        HOKUSAI CANVAS BUTTON — large, always visible
@@ -631,6 +665,12 @@
       overflow: hidden;
       background: none;
       will-change: auto;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      padding: 0;
+      appearance: none;
+      -webkit-appearance: none;
+      outline: none;
     }
     .dock-sw::before {
       content: '';
@@ -707,12 +747,21 @@
       line-height: 1;
       cursor: pointer;
       display: flex; align-items: center; justify-content: center;
-      opacity: 0;
+      opacity: .8;
       transition: opacity .15s;
       padding: 0;
       font-family: sans-serif;
     }
-    .dock-my-wrap:hover .dock-my-remove { opacity: 1; }
+    @media (hover: hover) {
+      .dock-my-remove {
+        opacity: 0;
+      }
+      .dock-my-wrap:hover .dock-my-remove { opacity: 1; }
+    }
+    .dock-my-wrap:active .dock-my-remove,
+    .dock-my-remove:active {
+      opacity: 1;
+    }
 
     /* ══════════════════════════════════════════════════════════════
        RIGHT PANEL
@@ -1101,9 +1150,11 @@
         <div class="ccm-hex" id="ccm-hex">#FFFFFF</div>
         <div class="ccm-actions">
           <button class="ccm-apply" onclick="applyPickedColor()">
+            <i class="ti ti-thumb-up" aria-hidden="true"></i>
             <span data-t="ccm_apply">Applica colore</span>
           </button>
           <button class="ccm-cancel" onclick="cancelPickedColor()">
+            <span class="ccm-xcirc" aria-hidden="true"><i class="ti ti-x"></i></span>
             <span data-t="ccm_cancel">Annulla</span>
           </button>
         </div>
@@ -1918,16 +1969,20 @@ function buildSwatches() {
   if(!g) return;
   g.innerHTML = '';
   pal.forEach(hex => {
-    const d = document.createElement('div');
+    const d = document.createElement('button');
+    d.type = 'button';
     d.className = 'dock-sw' + (hex.toLowerCase() === S.color.toLowerCase() ? ' on' : '');
     d.style.setProperty('--sw', hex);
     d.title = hex;
-    d.onclick = () => {
+    const handleTap = (e) => {
+      e.preventDefault();
       /* Clear selection, then select the clicked swatch */
       document.querySelectorAll('.dock-sw').forEach(s => s.classList.remove('on'));
       d.classList.add('on');
       setColor(hex);
     };
+    d.addEventListener('click', handleTap);
+    d.addEventListener('touchstart', handleTap, { passive: false });
     g.appendChild(d);
   });
 }
@@ -2035,11 +2090,14 @@ function buildMyPalette() {
     const wrap = document.createElement('div');
     wrap.className = 'dock-my-wrap';
 
-    const d = document.createElement('div');
+    const d = document.createElement('button');
+    d.type = 'button';
     d.className = 'dock-sw' + (entry.hex.toUpperCase() === S.color.toUpperCase() ? ' on' : '');
     d.style.setProperty('--sw', entry.hex);
     d.title = entry.hex;
-    d.onclick = () => {
+    const handleTap = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       document.querySelectorAll('.dock-sw').forEach(s => s.classList.remove('on'));
       d.classList.add('on');
       const snap = { ...entry.params };
@@ -2047,6 +2105,8 @@ function buildMyPalette() {
       syncPanelUI(snap);
       setColor(snap.color);
     };
+    d.addEventListener('click', handleTap);
+    d.addEventListener('touchstart', handleTap, { passive: false });
 
     const x = document.createElement('button');
     x.className = 'dock-my-remove';
@@ -2055,11 +2115,14 @@ function buildMyPalette() {
     x.setAttribute('data-title', 'title_remove_mypal');
     x.setAttribute('aria-label', TR[LANG].aria_remove_mypal);
     x.setAttribute('data-aria', 'aria_remove_mypal');
-    x.onclick = e => {
+    const handleRemove = (e) => {
+      e.preventDefault();
       e.stopPropagation();
       MYPAL.splice(idx, 1);
       buildMyPalette();
     };
+    x.addEventListener('click', handleRemove);
+    x.addEventListener('touchstart', handleRemove, { passive: false });
 
     wrap.appendChild(d);
     wrap.appendChild(x);
@@ -3678,6 +3741,8 @@ async function downloadPNG() {
     await new Promise(r => setTimeout(r, 2000));
   } finally {
     hideLdr();
+    buildSwatches();
+    buildMyPalette();
   }
 }
 
@@ -3717,7 +3782,11 @@ async function captureAndShare() {
     await new Promise(r => setTimeout(r, 2000));
   } finally {
     hideLdr();
-    setTimeout(() => { if(cv) cv.style.visibility = ''; }, 220);
+    setTimeout(() => { 
+      if(cv) cv.style.visibility = ''; 
+      buildSwatches();
+      buildMyPalette();
+    }, 220);
     btn.classList.remove('busy');
     btn.innerHTML = _sharePlaneSVG();
   }
